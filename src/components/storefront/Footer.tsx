@@ -37,7 +37,7 @@ export function Footer() {
                 <img
                   src={settings.logoUrl}
                   alt={storeName}
-                  className="h-9 w-9 rounded-xl object-cover"
+                  className="h-9 w-auto max-w-[140px] max-h-9 object-contain rounded-lg"
                 />
               ) : (
                 <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-700 text-sm font-bold text-white">

@@ -327,18 +327,31 @@ export default function AdminOrdersPage() {
         <div className="hidden print:block p-8 text-black bg-white">
           {printMode === 'INVOICE' ? (
             <div className="space-y-6">
-              <div className="flex justify-between border-b pb-4">
-                <div>
-                  <h1 className="text-2xl font-extrabold">
-                    {ctx?.settings?.storeNameI18n?.ar || 'نبات الأطلس | Nabat Al Atlas'}
-                  </h1>
-                  <p className="text-sm">{ctx?.settings?.phone}</p>
-                  <p className="text-sm">{ctx?.settings?.email}</p>
+              <div className="flex justify-between items-start border-b pb-4">
+                <div className="flex items-center gap-4">
+                  {ctx?.settings?.logoUrl && (
+                    <img
+                      src={ctx.settings.logoUrl}
+                      alt={ctx?.settings?.storeNameI18n?.ar || 'Store Logo'}
+                      className="h-16 w-auto max-w-[150px] object-contain rounded-lg"
+                    />
+                  )}
+                  <div>
+                    <h1 className="text-2xl font-extrabold text-stone-900">
+                      {ctx?.settings?.storeNameI18n?.[locale] || ctx?.settings?.storeNameI18n?.ar || 'نبات الأطلس | Nabat Al Atlas'}
+                    </h1>
+                    {ctx?.settings?.phone && <p className="text-sm text-stone-600">{ctx.settings.phone}</p>}
+                    {ctx?.settings?.email && <p className="text-sm text-stone-600">{ctx.settings.email}</p>}
+                    {ctx?.settings?.addressI18n?.[locale] && (
+                      <p className="text-xs text-stone-500">{ctx.settings.addressI18n[locale]}</p>
+                    )}
+                  </div>
                 </div>
                 <div className="text-end">
-                  <p className="text-lg font-bold">INVOICE #{detail.order.orderNumber}</p>
-                  <p className="text-sm">
-                    {new Date(detail.order.createdAt).toLocaleDateString()}
+                  <p className="text-lg font-bold">INVOICE / فاتورة</p>
+                  <p className="text-base font-extrabold text-stone-900">#{detail.order.orderNumber}</p>
+                  <p className="text-sm text-stone-500">
+                    {new Date(detail.order.createdAt).toLocaleDateString(locale === 'ar' ? 'ar-MA' : 'fr-FR')}
                   </p>
                 </div>
               </div>
@@ -390,8 +403,17 @@ export default function AdminOrdersPage() {
             </div>
           ) : (
             <div className="mx-auto max-w-md border-2 border-black p-6 space-y-3">
-              <div className="border-b border-black pb-2 flex justify-between">
-                <strong className="text-base">SHIPPING LABEL</strong>
+              <div className="border-b border-black pb-2 flex justify-between items-center">
+                <div className="flex items-center gap-2">
+                  {ctx?.settings?.logoUrl && (
+                    <img
+                      src={ctx.settings.logoUrl}
+                      alt="Logo"
+                      className="h-6 w-auto max-w-[80px] object-contain"
+                    />
+                  )}
+                  <strong className="text-base">SHIPPING LABEL</strong>
+                </div>
                 <span dir="ltr" className="font-mono font-bold">
                   #{detail.order.orderNumber}
                 </span>

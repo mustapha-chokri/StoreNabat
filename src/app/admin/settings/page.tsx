@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useCallback, useEffect, useState } from 'react';
-import { Check, Loader2 } from 'lucide-react';
+import { Check, Image as ImageIcon, Loader2, Trash2, Upload } from 'lucide-react';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { useStore } from '@/components/providers/StoreContextProvider';
 import {
@@ -108,6 +108,7 @@ export default function AdminSettingsPage() {
   const [data, setData] = useState<AdminSettingsPayload | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
   const [savedToast, setSavedToast] = useState(false);
   const [smtpPass, setSmtpPass] = useState('');
 
@@ -201,6 +202,123 @@ export default function AdminSettingsPage() {
           <>
             {tab === 'general' && (
               <div className="rounded-2xl border border-stone-200 bg-white p-5 space-y-5 text-xs">
+                {/* Store Logo Section */}
+                <div className="rounded-2xl border border-stone-200 bg-stone-50/60 p-4 space-y-3">
+                  <div className="flex items-center justify-between border-b border-stone-200 pb-2">
+                    <div>
+                      <h3 className="font-extrabold text-stone-900">{ar ? 'شعار المتجر (Logo)' : 'Store Logo'}</h3>
+                      <p className="text-[11px] text-stone-500">
+                        {ar
+                          ? 'يظهر الشعار في رأس وتذييل صفحات المتجر وعلى فواتير الطلبات وملصقات الشحن.'
+                          : 'Logo appears in the storefront header, footer, invoices, and shipping labels.'}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-col sm:flex-row items-center gap-5">
+                    {/* Logo Preview */}
+                    <div className="relative flex h-24 w-36 items-center justify-center rounded-2xl border-2 border-dashed border-stone-300 bg-white p-2 shadow-xs">
+                      {data.settings.logoUrl ? (
+                        <img
+                          src={data.settings.logoUrl}
+                          alt="Store Logo"
+                          className="max-h-full max-w-full object-contain"
+                        />
+                      ) : (
+                        <div className="flex flex-col items-center justify-center text-stone-400">
+                          <ImageIcon className="h-6 w-6 stroke-1 mb-1" />
+                          <span className="text-[10px] font-semibold">{ar ? 'لا يوجد شعار' : 'No Logo'}</span>
+                        </div>
+                      )}
+                      {uploadingLogo && (
+                        <div className="absolute inset-0 flex items-center justify-center rounded-2xl bg-white/80">
+                          <Loader2 className="h-5 w-5 animate-spin text-store-primary" />
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Logo Controls */}
+                    <div className="flex-1 space-y-2.5 w-full">
+                      <div className="flex flex-wrap items-center gap-2">
+                        <label className="cursor-pointer inline-flex items-center gap-1.5 rounded-xl bg-store-primary px-3.5 py-2 text-xs font-bold text-white hover:opacity-90 transition-opacity shadow-xs">
+                          <Upload className="h-3.5 w-3.5" />
+                          <span>{ar ? 'رفع الشعار من جهازك' : 'Upload Logo'}</span>
+                          <input
+                            type="file"
+                            accept="image/png,image/jpeg,image/svg+xml,image/webp,image/gif"
+                            className="hidden"
+                            onChange={async (e) => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              setUploadingLogo(true);
+                              try {
+                                const url = await uploadAsset(file);
+                                if (url) {
+                                  setData((prev) =>
+                                    prev
+                                      ? {
+                                          ...prev,
+                                          settings: { ...prev.settings, logoUrl: url },
+                                        }
+                                      : prev
+                                  );
+                                }
+                              } finally {
+                                setUploadingLogo(false);
+                              }
+                            }}
+                          />
+                        </label>
+
+                        {data.settings.logoUrl && (
+                          <button
+                            type="button"
+                            onClick={() =>
+                              setData((prev) =>
+                                prev
+                                  ? {
+                                      ...prev,
+                                      settings: { ...prev.settings, logoUrl: null },
+                                    }
+                                  : prev
+                              )
+                            }
+                            className="inline-flex items-center gap-1.5 rounded-xl border border-red-200 bg-red-50 px-3 py-2 text-xs font-bold text-red-700 hover:bg-red-100 transition-colors"
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                            <span>{ar ? 'إزالة الشعار' : 'Remove Logo'}</span>
+                          </button>
+                        )}
+                      </div>
+
+                      <div>
+                        <label className="mb-1 block text-[11px] font-bold text-stone-600">
+                          {ar ? 'أو أدخل رابط الشعار المباشر (URL)' : 'Or Enter Direct Logo URL'}
+                        </label>
+                        <input
+                          dir="ltr"
+                          value={data.settings.logoUrl || ''}
+                          placeholder="https://example.com/logo.png"
+                          onChange={(e) =>
+                            setData((prev) =>
+                              prev
+                                ? {
+                                    ...prev,
+                                    settings: {
+                                      ...prev.settings,
+                                      logoUrl: e.target.value.trim() || null,
+                                    },
+                                  }
+                                : prev
+                            )
+                          }
+                          className="w-full rounded-xl border border-stone-300 bg-white px-3 py-1.5 text-xs text-start font-mono"
+                        />
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
                 <h2 className="text-sm font-extrabold">{ar ? 'بيانات المتجر الأساسية' : 'General Settings'}</h2>
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
                   <div>

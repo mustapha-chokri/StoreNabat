@@ -10,8 +10,8 @@ import { checkRateLimit } from '@/core/security/rate-limit';
 import { getClientIp } from '@/core/security/csrf';
 
 const LoginSchema = z.object({
-  email: z.string().trim().email(),
-  password: z.string().min(1),
+  email: z.string().trim().email().optional().or(z.literal('')),
+  password: z.string().min(1, 'كلمة المرور مطلوبة'),
 });
 
 export async function POST(req: NextRequest) {
@@ -32,16 +32,18 @@ export async function POST(req: NextRequest) {
     const tenant = await getRequestTenant();
 
     const user = await withTenantDb(tenant, async (db) => {
+      const emailQuery = body.email && body.email.trim() ? body.email.trim().toLowerCase() : null;
+      const conds = [eq(adminUsers.storeId, tenant.id), eq(adminUsers.isActive, true)];
+      if (emailQuery) {
+        conds.push(eq(adminUsers.email, emailQuery));
+      } else {
+        conds.push(eq(adminUsers.role, 'OWNER'));
+      }
+
       const rows = await db
         .select()
         .from(adminUsers)
-        .where(
-          and(
-            eq(adminUsers.storeId, tenant.id),
-            eq(adminUsers.email, body.email.toLowerCase()),
-            eq(adminUsers.isActive, true)
-          )
-        )
+        .where(and(...conds))
         .limit(1);
 
       if (rows.length === 0) return null;

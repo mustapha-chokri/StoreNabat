@@ -285,6 +285,7 @@ export function ProductDetailClient({ data }: { data: ProductDetailData }) {
     product.specificationsI18n?.[locale] ||
     product.specificationsI18n?.ar ||
     product.specificationsI18n?.fr ||
+    product.specificationsI18n?.en ||
     [];
 
   const waRaw = (
@@ -765,11 +766,17 @@ export function ProductDetailClient({ data }: { data: ProductDetailData }) {
           {activeTab === 'specs' && (
             <div className="divide-y divide-stone-100">
               {specsList.length === 0 ? (
-                <p className="text-sm text-stone-500">—</p>
+                <p className="text-sm text-stone-500 py-3">
+                  {locale === 'ar'
+                    ? 'لا توجد مواصفات محددة لهذا المنتج حالياً.'
+                    : locale === 'fr'
+                      ? 'Aucune spécification renseignée pour ce produit.'
+                      : 'No specifications available for this product.'}
+                </p>
               ) : (
                 specsList.map((s, idx) => (
                   <div key={idx} className="grid grid-cols-3 py-2.5 text-sm">
-                    <span className="font-bold text-stone-700">{s.key}</span>
+                    <span className="font-bold text-stone-800">{s.key}</span>
                     <span className="col-span-2 text-stone-600">{s.value}</span>
                   </div>
                 ))

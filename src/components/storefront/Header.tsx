@@ -4,7 +4,12 @@ import React, { useEffect, useRef, useState } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
+  Eye,
+  EyeOff,
   Globe,
+  KeyRound,
+  Loader2,
+  Lock,
   Menu,
   PackageSearch,
   Search,
@@ -50,6 +55,66 @@ export function Header() {
   const [searching, setSearching] = useState(false);
   const [langMenuOpen, setLangMenuOpen] = useState(false);
   const searchBoxRef = useRef<HTMLDivElement | null>(null);
+
+  // Secret 5-Click Admin Access State
+  const [secretClicks, setSecretClicks] = useState(0);
+  const [secretModalOpen, setSecretModalOpen] = useState(false);
+  const [secretEmail, setSecretEmail] = useState('');
+  const [secretPassword, setSecretPassword] = useState('');
+  const [secretLoading, setSecretLoading] = useState(false);
+  const [secretError, setSecretError] = useState<string | null>(null);
+  const [showPassword, setShowPassword] = useState(false);
+  const clickTimerRef = useRef<NodeJS.Timeout | null>(null);
+
+  function handleLogoClick(e: React.MouseEvent) {
+    const nextCount = secretClicks + 1;
+    setSecretClicks(nextCount);
+
+    if (clickTimerRef.current) {
+      clearTimeout(clickTimerRef.current);
+    }
+
+    if (nextCount >= 5) {
+      e.preventDefault();
+      e.stopPropagation();
+      setSecretClicks(0);
+      setSecretPassword('');
+      setSecretError(null);
+      setSecretModalOpen(true);
+      return;
+    }
+
+    clickTimerRef.current = setTimeout(() => {
+      setSecretClicks(0);
+    }, 3000);
+  }
+
+  async function handleSecretLogin(e: React.FormEvent) {
+    e.preventDefault();
+    if (!secretPassword) return;
+    setSecretLoading(true);
+    setSecretError(null);
+    try {
+      const res = await fetch('/api/admin/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: secretEmail.trim() || undefined,
+          password: secretPassword,
+        }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        setSecretError(data.error || (locale === 'ar' ? 'كلمة المرور غير صحيحة.' : 'Incorrect password.'));
+        return;
+      }
+      window.location.href = '/admin';
+    } catch {
+      setSecretError(locale === 'ar' ? 'حدث خطأ أثناء الاتصال بالخادم.' : 'Error contacting server.');
+    } finally {
+      setSecretLoading(false);
+    }
+  }
 
   const settings = ctx?.settings;
   const announcement = settings?.announcementBar;
@@ -147,19 +212,24 @@ export function Header() {
             <Menu className="h-5 w-5" />
           </button>
 
-          <Link href="/" className="flex items-center gap-2.5">
+          <Link
+            href="/"
+            onClick={handleLogoClick}
+            className="flex items-center gap-2.5 group select-none"
+            title={locale === 'ar' ? 'الرئيسية' : 'Home'}
+          >
             {settings?.logoUrl ? (
               <img
                 src={settings.logoUrl}
                 alt={storeName}
-                className="h-9 w-9 rounded-xl object-cover border border-stone-200"
+                className="h-9 w-auto max-w-[140px] max-h-9 object-contain rounded-lg transition-transform active:scale-95"
               />
             ) : (
-              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-store-primary text-sm font-bold text-white shadow-xs">
+              <span className="flex h-9 w-9 items-center justify-center rounded-xl bg-store-primary text-sm font-bold text-white shadow-xs transition-transform active:scale-95">
                 ن
               </span>
             )}
-            <span className="text-base sm:text-lg font-bold tracking-tight text-stone-900">
+            <span className="text-base sm:text-lg font-bold tracking-tight text-stone-900 group-hover:text-store-primary transition-colors">
               {storeName}
             </span>
           </Link>
@@ -449,6 +519,110 @@ export function Header() {
                 </div>
               </div>
             )}
+          </div>
+        </div>
+      )}
+      {/* Secret 5-Click Admin Access Modal */}
+      {secretModalOpen && (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-xs p-4 animate-in fade-in duration-200">
+          <div className="relative w-full max-w-md overflow-hidden rounded-3xl bg-white shadow-2xl border border-stone-200">
+            {/* Header with security badge */}
+            <div className="bg-gradient-to-r from-stone-900 to-emerald-950 p-6 text-white text-center relative">
+              <button
+                type="button"
+                onClick={() => setSecretModalOpen(false)}
+                className="absolute top-4 end-4 rounded-full bg-white/10 p-1.5 text-stone-300 hover:bg-white/20 hover:text-white transition-colors"
+                aria-label="Close"
+              >
+                <X className="h-5 w-5" />
+              </button>
+              <div className="mx-auto mb-3 flex h-14 w-14 items-center justify-center rounded-2xl bg-white/10 backdrop-blur-md border border-white/20 shadow-inner">
+                <Lock className="h-7 w-7 text-emerald-400" />
+              </div>
+              <h3 className="text-lg font-black tracking-tight">
+                {locale === 'ar' ? '🔐 دخول الإدارة السريع' : '🔐 Quick Admin Access'}
+              </h3>
+              <p className="mt-1 text-xs text-stone-300">
+                {locale === 'ar'
+                  ? 'تم فتح هذه البوابة بعد النقر 5 مرات على الشعار. أدخل كلمة السر للتحويل المباشر.'
+                  : 'Unlocked after 5 clicks on the logo. Enter password for instant redirection.'}
+              </p>
+            </div>
+
+            {/* Form */}
+            <form onSubmit={handleSecretLogin} className="p-6 space-y-4">
+              {secretError && (
+                <div className="rounded-xl bg-red-50 p-3 text-xs font-bold text-red-700 border border-red-200 flex items-center gap-2">
+                  <X className="h-4 w-4 shrink-0" />
+                  <span>{secretError}</span>
+                </div>
+              )}
+
+              <div>
+                <label className="mb-1 block text-xs font-bold text-stone-700">
+                  {locale === 'ar' ? 'البريد الإلكتروني (اختياري)' : 'Admin Email (optional)'}
+                </label>
+                <input
+                  dir="ltr"
+                  type="email"
+                  value={secretEmail}
+                  onChange={(e) => setSecretEmail(e.target.value)}
+                  placeholder="admin@nabatalatlas.ma"
+                  className="w-full rounded-xl border border-stone-300 bg-stone-50 px-3 py-2 text-xs text-start focus:border-store-primary focus:bg-white focus:outline-none"
+                />
+                <p className="mt-0.5 text-[10px] text-stone-400">
+                  {locale === 'ar'
+                    ? 'إذا ترك فارغاً سيتم التحقق بحساب مالك المتجر الأساسي.'
+                    : 'Leave empty to verify with store owner credentials.'}
+                </p>
+              </div>
+
+              <div>
+                <label className="mb-1 block text-xs font-bold text-stone-700">
+                  {locale === 'ar' ? 'كلمة المرور *' : 'Password *'}
+                </label>
+                <div className="relative">
+                  <input
+                    required
+                    autoFocus
+                    dir="ltr"
+                    type={showPassword ? 'text' : 'password'}
+                    value={secretPassword}
+                    onChange={(e) => setSecretPassword(e.target.value)}
+                    placeholder="••••••••••••"
+                    className="w-full rounded-xl border border-stone-300 px-3 py-2.5 pe-10 text-xs text-start focus:border-store-primary focus:outline-none font-mono"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute top-1/2 end-2.5 -translate-y-1/2 text-stone-400 hover:text-stone-600 p-1"
+                    tabIndex={-1}
+                  >
+                    {showPassword ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+                  </button>
+                </div>
+              </div>
+
+              <div className="pt-2">
+                <button
+                  type="submit"
+                  disabled={secretLoading || !secretPassword}
+                  className="w-full inline-flex items-center justify-center gap-2 rounded-xl bg-store-primary py-2.5 text-xs font-extrabold text-white hover:opacity-95 disabled:opacity-50 transition-all shadow-md shadow-store-primary/20"
+                >
+                  {secretLoading ? (
+                    <>
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                      <span>{locale === 'ar' ? 'جاري التحقق...' : 'Verifying...'}</span>
+                    </>
+                  ) : (
+                    <>
+                      <KeyRound className="h-4 w-4" />
+                      <span>{locale === 'ar' ? 'دخول لوحة التحكم الآن' : 'Access Admin Panel'}</span>
+                    </>
+                  )}
+                </button>
+              </div>
+            </form>
           </div>
         </div>
       )}

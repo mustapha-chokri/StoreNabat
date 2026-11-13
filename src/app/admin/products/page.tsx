@@ -13,7 +13,7 @@ import {
 } from 'lucide-react';
 import { AdminShell } from '@/components/admin/AdminShell';
 import { useStore } from '@/components/providers/StoreContextProvider';
-import type { I18nMap, ProductType } from '@/db/schema/types';
+import type { I18nMap, ProductSpecificationItem, ProductType } from '@/db/schema/types';
 
 interface AdminProductRow {
   id: string;
@@ -23,6 +23,7 @@ interface AdminProductRow {
   titleI18n: I18nMap;
   shortDescriptionI18n: I18nMap;
   descriptionI18n: I18nMap;
+  specificationsI18n?: Record<string, ProductSpecificationItem[]>;
   regularPrice: string;
   salePrice: string | null;
   discountType: 'PERCENT' | 'FIXED' | null;
@@ -78,6 +79,7 @@ interface FormState {
   descAr: string;
   descFr: string;
   descEn: string;
+  specificationsI18n: Record<string, ProductSpecificationItem[]>;
   regularPrice: string;
   salePrice: string;
   promoStartsAt: string;
@@ -112,6 +114,7 @@ const EMPTY_FORM: FormState = {
   descAr: '',
   descFr: '',
   descEn: '',
+  specificationsI18n: { ar: [], fr: [], en: [] },
   regularPrice: '100',
   salePrice: '',
   promoStartsAt: '',
@@ -143,6 +146,7 @@ export default function AdminProductsPage() {
   const [loading, setLoading] = useState(true);
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState<FormState>(EMPTY_FORM);
+  const [specsLocale, setSpecsLocale] = useState<'ar' | 'fr' | 'en'>('ar');
   const [saving, setSaving] = useState(false);
   const [uploading, setUploading] = useState(false);
   const [errMsg, setErrMsg] = useState<string | null>(null);
@@ -171,8 +175,57 @@ export default function AdminProductsPage() {
     loadData();
   }, [loadData]);
 
+  function handleAddSpec(lang: 'ar' | 'fr' | 'en') {
+    setForm((prev) => ({
+      ...prev,
+      specificationsI18n: {
+        ...prev.specificationsI18n,
+        [lang]: [...(prev.specificationsI18n?.[lang] || []), { key: '', value: '' }],
+      },
+    }));
+  }
+
+  function handleUpdateSpec(lang: 'ar' | 'fr' | 'en', index: number, field: 'key' | 'value', val: string) {
+    setForm((prev) => {
+      const list = [...(prev.specificationsI18n?.[lang] || [])];
+      list[index] = { ...list[index], [field]: val };
+      return {
+        ...prev,
+        specificationsI18n: {
+          ...prev.specificationsI18n,
+          [lang]: list,
+        },
+      };
+    });
+  }
+
+  function handleRemoveSpec(lang: 'ar' | 'fr' | 'en', index: number) {
+    setForm((prev) => {
+      const list = (prev.specificationsI18n?.[lang] || []).filter((_, idx) => idx !== index);
+      return {
+        ...prev,
+        specificationsI18n: {
+          ...prev.specificationsI18n,
+          [lang]: list,
+        },
+      };
+    });
+  }
+
+  function handleCopySpecsFromAr(targetLang: 'fr' | 'en') {
+    const arSpecs = form.specificationsI18n?.ar || [];
+    setForm((prev) => ({
+      ...prev,
+      specificationsI18n: {
+        ...prev.specificationsI18n,
+        [targetLang]: arSpecs.map((s) => ({ ...s })),
+      },
+    }));
+  }
+
   function openCreate() {
     setForm(EMPTY_FORM);
+    setSpecsLocale('ar');
     setErrMsg(null);
     setModalOpen(true);
   }
@@ -192,6 +245,11 @@ export default function AdminProductsPage() {
       descAr: p.descriptionI18n?.ar || '',
       descFr: p.descriptionI18n?.fr || '',
       descEn: p.descriptionI18n?.en || '',
+      specificationsI18n: {
+        ar: Array.isArray(p.specificationsI18n?.ar) ? p.specificationsI18n.ar : [],
+        fr: Array.isArray(p.specificationsI18n?.fr) ? p.specificationsI18n.fr : [],
+        en: Array.isArray(p.specificationsI18n?.en) ? p.specificationsI18n.en : [],
+      },
       regularPrice: String(p.regularPrice),
       salePrice: p.salePrice ? String(p.salePrice) : '',
       promoStartsAt: p.promoStartsAt ? p.promoStartsAt.slice(0, 16) : '',
@@ -212,6 +270,7 @@ export default function AdminProductsPage() {
       digitalFiles: p.digitalFiles || [],
       bundleItems: p.bundleItems || [],
     });
+    setSpecsLocale('ar');
     setErrMsg(null);
     setModalOpen(true);
   }
@@ -293,6 +352,11 @@ export default function AdminProductsPage() {
           ar: form.descAr,
           fr: form.descFr,
           en: form.descEn,
+        },
+        specificationsI18n: {
+          ar: (form.specificationsI18n?.ar || []).filter((s) => s.key.trim() && s.value.trim()),
+          fr: (form.specificationsI18n?.fr || []).filter((s) => s.key.trim() && s.value.trim()),
+          en: (form.specificationsI18n?.en || []).filter((s) => s.key.trim() && s.value.trim()),
         },
         regularPrice: Number(form.regularPrice) || 0,
         salePrice: form.salePrice ? Number(form.salePrice) : null,
@@ -621,24 +685,132 @@ export default function AdminProductsPage() {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div>
-                <label className="mb-1 block text-xs font-bold">{ar ? 'الوصف (عربية)' : 'Description AR'}</label>
+                <label className="mb-1 block text-xs font-bold">{ar ? 'الوصف التفصيلي (عربية)' : 'Description AR'}</label>
                 <textarea
                   rows={3}
                   value={form.descAr}
                   onChange={(e) => setForm({ ...form, descAr: e.target.value })}
+                  placeholder={ar ? 'أدخل تفاصيل ومميزات المنتج بالعربية...' : 'Product details in Arabic...'}
                   className="w-full rounded-xl border border-stone-300 px-3 py-2 text-xs"
                 />
               </div>
               <div>
-                <label className="mb-1 block text-xs font-bold">Description FR</label>
+                <label className="mb-1 block text-xs font-bold">{ar ? 'الوصف التفصيلي (فرنسية)' : 'Description FR'}</label>
                 <textarea
                   rows={3}
                   value={form.descFr}
                   onChange={(e) => setForm({ ...form, descFr: e.target.value })}
+                  placeholder="Détails du produit en français..."
                   className="w-full rounded-xl border border-stone-300 px-3 py-2 text-xs"
                 />
+              </div>
+              <div>
+                <label className="mb-1 block text-xs font-bold">{ar ? 'الوصف التفصيلي (إنجليزية)' : 'Description EN'}</label>
+                <textarea
+                  rows={3}
+                  value={form.descEn}
+                  onChange={(e) => setForm({ ...form, descEn: e.target.value })}
+                  placeholder="Product details in English..."
+                  className="w-full rounded-xl border border-stone-300 px-3 py-2 text-xs"
+                />
+              </div>
+            </div>
+
+            {/* Specifications Section */}
+            <div className="rounded-2xl border border-stone-200 bg-stone-50/70 p-4 space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 border-b border-stone-200 pb-2.5">
+                <div>
+                  <h3 className="text-xs font-extrabold text-stone-900">
+                    {ar ? 'مواصفات وخصائص المنتج (Specifications)' : 'Product Specifications'}
+                  </h3>
+                  <p className="text-[11px] text-stone-500">
+                    {ar
+                      ? 'تظهر في تبويب "المواصفات" عند معاينة المنتج (مثل: الوزن، الحجم، المكونات، بلد المنشأ...)'
+                      : 'Displayed in the "Specifications" tab on the product page (e.g. Weight, Volume, Origin, etc.)'}
+                  </p>
+                </div>
+                <div className="flex items-center gap-1 rounded-xl bg-white p-1 border border-stone-200 shadow-xs">
+                  {(['ar', 'fr', 'en'] as const).map((l) => (
+                    <button
+                      key={l}
+                      type="button"
+                      onClick={() => setSpecsLocale(l)}
+                      className={`rounded-lg px-2.5 py-1 text-xs font-bold transition-colors ${
+                        specsLocale === l
+                          ? 'bg-store-primary text-white shadow-xs'
+                          : 'text-stone-600 hover:bg-stone-100'
+                      }`}
+                    >
+                      {l === 'ar' ? 'العربية' : l === 'fr' ? 'Français' : 'English'}
+                      {form.specificationsI18n?.[l]?.length ? ` (${form.specificationsI18n[l].length})` : ''}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {specsLocale !== 'ar' && (form.specificationsI18n?.ar?.length || 0) > 0 && (!form.specificationsI18n?.[specsLocale]?.length) && (
+                <div className="flex items-center justify-between rounded-xl bg-amber-50 p-2.5 text-xs text-amber-800 border border-amber-200">
+                  <span>
+                    {ar
+                      ? 'توجد مواصفات مدخلة بالعربية. يمكنك نسخها وترجمتها لتسهيل العمل.'
+                      : 'Arabic specifications exist. You can copy them here to translate.'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={() => handleCopySpecsFromAr(specsLocale)}
+                    className="rounded-lg bg-amber-200/80 px-2.5 py-1 font-bold text-amber-900 hover:bg-amber-300 transition-colors"
+                  >
+                    {ar ? 'نسخ من العربية' : 'Copy from Arabic'}
+                  </button>
+                </div>
+              )}
+
+              <div className="space-y-2">
+                {(!form.specificationsI18n?.[specsLocale] || form.specificationsI18n[specsLocale].length === 0) ? (
+                  <p className="py-2 text-center text-xs text-stone-400">
+                    {ar
+                      ? 'لا توجد مواصفات مضافة لهذه اللغة بعد. اضغط على الزر أدناه لإضافة خاصية.'
+                      : 'No specifications added for this language yet. Click below to add one.'}
+                  </p>
+                ) : (
+                  form.specificationsI18n[specsLocale].map((spec, idx) => (
+                    <div key={idx} className="flex items-center gap-2">
+                      <input
+                        placeholder={ar ? 'اسم الخاصية (مثال: الحجم)' : 'Attribute (e.g. Size)'}
+                        value={spec.key}
+                        onChange={(e) => handleUpdateSpec(specsLocale, idx, 'key', e.target.value)}
+                        className="w-1/3 rounded-xl border border-stone-300 bg-white px-3 py-1.5 text-xs focus:border-store-primary focus:outline-none"
+                      />
+                      <input
+                        placeholder={ar ? 'القيمة (مثال: 100 مل)' : 'Value (e.g. 100ml)'}
+                        value={spec.value}
+                        onChange={(e) => handleUpdateSpec(specsLocale, idx, 'value', e.target.value)}
+                        className="flex-1 rounded-xl border border-stone-300 bg-white px-3 py-1.5 text-xs focus:border-store-primary focus:outline-none"
+                      />
+                      <button
+                        type="button"
+                        onClick={() => handleRemoveSpec(specsLocale, idx)}
+                        className="rounded-lg p-1.5 text-red-500 hover:bg-red-50 transition-colors"
+                        title={ar ? 'حذف' : 'Delete'}
+                      >
+                        <Trash2 className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))
+                )}
+              </div>
+
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={() => handleAddSpec(specsLocale)}
+                  className="inline-flex items-center gap-1.5 rounded-xl border border-dashed border-stone-300 bg-white px-3 py-1.5 text-xs font-bold text-stone-700 hover:border-store-primary hover:text-store-primary transition-colors"
+                >
+                  <Plus className="h-3.5 w-3.5" />
+                  <span>{ar ? 'إضافة خاصية جديدة' : 'Add Specification'}</span>
+                </button>
               </div>
             </div>
 
