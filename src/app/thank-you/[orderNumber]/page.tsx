@@ -21,6 +21,7 @@ import {
   DEFAULT_WHATSAPP_TEMPLATES,
   renderWhatsAppTemplate,
 } from '@/services/whatsapp';
+import { provisionDigitalDownloadsForOrder } from '@/services/digital';
 import { StorefrontShell } from '@/components/storefront/StorefrontShell';
 import {
   ThankYouClient,
@@ -58,22 +59,31 @@ export default async function ThankYouPage({
       .from(orderItems)
       .where(and(eq(orderItems.storeId, tenant.id), eq(orderItems.orderId, order.id)));
 
-    const downloads =
-      order.paymentStatus === 'PAID'
-        ? await db
-            .select({
-              accessToken: digitalDownloads.accessToken,
-              downloadCount: digitalDownloads.downloadCount,
-              maxDownloads: digitalDownloads.maxDownloads,
-              fileName: digitalFiles.fileName,
-            })
-            .from(digitalDownloads)
-            .innerJoin(digitalFiles, eq(digitalDownloads.digitalFileId, digitalFiles.id))
-            .where(and(eq(digitalDownloads.storeId, tenant.id), eq(digitalDownloads.orderId, order.id)))
-        : [];
+    const isPaid = order.paymentStatus === 'PAID';
+    const hasDigital = items.some((i) => i.productType === 'DIGITAL');
 
-    const digitalPendingPayment =
-      order.paymentStatus !== 'PAID' && items.some((i) => i.productType === 'DIGITAL');
+    if (isPaid && hasDigital) {
+      await provisionDigitalDownloadsForOrder(db, {
+        storeId: tenant.id,
+        orderId: order.id,
+        customerId: order.customerId,
+      });
+    }
+
+    const downloads = isPaid
+      ? await db
+          .select({
+            accessToken: digitalDownloads.accessToken,
+            downloadCount: digitalDownloads.downloadCount,
+            maxDownloads: digitalDownloads.maxDownloads,
+            fileName: digitalFiles.fileName,
+          })
+          .from(digitalDownloads)
+          .innerJoin(digitalFiles, eq(digitalDownloads.digitalFileId, digitalFiles.id))
+          .where(and(eq(digitalDownloads.storeId, tenant.id), eq(digitalDownloads.orderId, order.id)))
+      : [];
+
+    const digitalPendingPayment = !isPaid && hasDigital;
 
     const rules = await db
       .select()

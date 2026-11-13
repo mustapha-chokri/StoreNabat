@@ -182,6 +182,69 @@ function TrackOrderInner() {
             </div>
           </div>
 
+          {/* Digital Downloads Section (Prominent) */}
+          {result.downloads.length > 0 && (
+            <div className="rounded-2xl border-2 border-emerald-300 bg-emerald-50/90 p-5 space-y-3 shadow-sm">
+              <div className="flex items-center gap-2 text-emerald-950 font-black">
+                <Download className="h-5 w-5 text-emerald-700" />
+                <h3 className="text-base font-black">
+                  {tr('thankyou.downloadsReady')}
+                </h3>
+              </div>
+              <p className="text-xs text-emerald-800">
+                {locale === 'ar'
+                  ? 'تم تأكيد الأداء بنجاح! ملفاتك الرقمية جاهزة ومتاحة للتحميل الفوري:'
+                  : locale === 'fr'
+                  ? 'Paiement confirmé avec succès ! Vos fichiers numériques sont prêts au téléchargement :'
+                  : 'Payment confirmed! Your digital files are ready for immediate download:'}
+              </p>
+              <div className="space-y-2 pt-1">
+                {result.downloads.map((d) => (
+                  <div
+                    key={d.accessToken}
+                    className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-emerald-200 bg-white p-3.5 shadow-sm"
+                  >
+                    <div>
+                      <p className="font-extrabold text-stone-900 text-sm">{d.fileName}</p>
+                      <p className="text-xs text-stone-400">
+                        {tr('thankyou.downloadLimit')}: {d.downloadCount} / {d.maxDownloads ?? '∞'}
+                      </p>
+                    </div>
+                    <a
+                      href={`/api/digital/download/${encodeURIComponent(d.accessToken)}`}
+                      className="inline-flex items-center gap-2 rounded-xl bg-emerald-800 px-5 py-2.5 text-xs font-black text-white hover:bg-emerald-700 active:scale-95 transition-all shadow-md"
+                    >
+                      <Download className="h-4 w-4" />
+                      <span>{tr('thankyou.downloadNow')}</span>
+                    </a>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {result.digitalPendingPayment && (
+            <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-4 space-y-1.5">
+              <div className="flex items-center gap-2">
+                <Clock className="h-4 w-4 text-amber-700 shrink-0" />
+                <p className="text-xs font-bold text-amber-900">
+                  {locale === 'ar'
+                    ? 'الملفات الرقمية في انتظار تأكيد استلام الدفع'
+                    : locale === 'fr'
+                    ? 'Fichiers numériques en attente de confirmation du paiement'
+                    : 'Digital files pending payment verification'}
+                </p>
+              </div>
+              <p className="text-xs text-amber-800 leading-relaxed">
+                {locale === 'ar'
+                  ? 'يتضمن هذا الطلب منتجات رقمية. سيتم تفعيل روابط التحميل وإظهارها هنا تلقائياً فور تأكيد إدارة المتجر أو بوابة الدفع استلام المبلغ.'
+                  : locale === 'fr'
+                  ? 'Cette commande contient des produits numériques. Les liens de téléchargement seront activés dès confirmation de la réception du paiement par notre équipe.'
+                  : 'This order includes digital products. Download links will appear here automatically once payment receipt is verified by our team.'}
+              </p>
+            </div>
+          )}
+
           <div className="space-y-3">
             <h3 className="text-sm font-extrabold text-stone-900">
               {locale === 'ar'
@@ -211,46 +274,6 @@ function TrackOrderInner() {
               ))}
             </div>
           </div>
-
-          {result.downloads.length > 0 && (
-            <div className="space-y-2 border-t border-stone-100 pt-4">
-              <h3 className="text-sm font-extrabold text-sky-900">
-                {tr('thankyou.downloadsReady')}
-              </h3>
-              {result.downloads.map((d) => (
-                <a
-                  key={d.accessToken}
-                  href={`/api/digital/download/${encodeURIComponent(d.accessToken)}`}
-                  className="flex items-center justify-between rounded-xl border border-sky-200 bg-sky-50 px-4 py-2.5 text-sm font-bold text-sky-950 hover:bg-sky-100"
-                >
-                  <span>{d.fileName}</span>
-                  <Download className="h-4 w-4" />
-                </a>
-              ))}
-            </div>
-          )}
-
-          {result.digitalPendingPayment && (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-4 space-y-1.5 border-t">
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-amber-700 shrink-0" />
-                <p className="text-xs font-bold text-amber-900">
-                  {locale === 'ar'
-                    ? 'الملفات الرقمية في انتظار تأكيد استلام الدفع'
-                    : locale === 'fr'
-                    ? 'Fichiers numériques en attente de confirmation du paiement'
-                    : 'Digital files pending payment verification'}
-                </p>
-              </div>
-              <p className="text-xs text-amber-800 leading-relaxed">
-                {locale === 'ar'
-                  ? 'يتضمن هذا الطلب منتجات رقمية. سيتم تفعيل روابط التحميل وإظهارها هنا تلقائياً فور تأكيد إدارة المتجر أو بوابة الدفع استلام المبلغ.'
-                  : locale === 'fr'
-                  ? 'Cette commande contient des produits numériques. Les liens de téléchargement seront activés dès confirmation de la réception du paiement par notre équipe.'
-                  : 'This order includes digital products. Download links will appear here automatically once payment receipt is verified by our team.'}
-              </p>
-            </div>
-          )}
 
           <div className="border-t border-stone-100 pt-4 space-y-2 text-sm">
             {result.items.map((it) => (

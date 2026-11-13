@@ -3,6 +3,7 @@ import { and, desc, eq } from 'drizzle-orm';
 import { digitalDownloads, digitalFiles, orderItems, orders, orderStatusHistory } from '@/db/schema/tenant';
 import { withRequestTenantDb } from '@/core/tenancy/context';
 import { validateAndNormalizePhone } from '@/core/security/morocco';
+import { provisionDigitalDownloadsForOrder } from '@/services/digital';
 
 export async function GET(req: NextRequest) {
   try {
@@ -43,22 +44,33 @@ export async function GET(req: NextRequest) {
         )
         .orderBy(desc(orderStatusHistory.createdAt));
 
-      const downloads = await db
-        .select({
-          accessToken: digitalDownloads.accessToken,
-          downloadCount: digitalDownloads.downloadCount,
-          maxDownloads: digitalDownloads.maxDownloads,
-          expiresAt: digitalDownloads.expiresAt,
-          fileName: digitalFiles.fileName,
-        })
-        .from(digitalDownloads)
-        .innerJoin(digitalFiles, eq(digitalDownloads.digitalFileId, digitalFiles.id))
-        .where(
-          and(eq(digitalDownloads.storeId, tenant.id), eq(digitalDownloads.orderId, order.id))
-        );
-
       const isPaid = order.paymentStatus === 'PAID';
       const hasDigitalItems = items.some((i) => i.productType === 'DIGITAL');
+
+      // If order is PAID and contains digital products, ensure tokens are provisioned
+      if (isPaid && hasDigitalItems) {
+        await provisionDigitalDownloadsForOrder(db, {
+          storeId: tenant.id,
+          orderId: order.id,
+          customerId: order.customerId,
+        });
+      }
+
+      const downloads = isPaid
+        ? await db
+            .select({
+              accessToken: digitalDownloads.accessToken,
+              downloadCount: digitalDownloads.downloadCount,
+              maxDownloads: digitalDownloads.maxDownloads,
+              expiresAt: digitalDownloads.expiresAt,
+              fileName: digitalFiles.fileName,
+            })
+            .from(digitalDownloads)
+            .innerJoin(digitalFiles, eq(digitalDownloads.digitalFileId, digitalFiles.id))
+            .where(
+              and(eq(digitalDownloads.storeId, tenant.id), eq(digitalDownloads.orderId, order.id))
+            )
+        : [];
 
       return {
         order: {
@@ -79,7 +91,7 @@ export async function GET(req: NextRequest) {
         },
         items,
         history,
-        downloads: phone && isPaid ? downloads : [],
+        downloads,
         digitalPendingPayment: !isPaid && hasDigitalItems,
       };
     });
