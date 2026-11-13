@@ -80,8 +80,10 @@ export default async function RootLayout({
       lang={locale}
       dir={direction}
       className={`${ibmPlexArabic.variable} ${plusJakarta.variable}`}
+      suppressHydrationWarning
     >
       <body
+        suppressHydrationWarning
         style={{
           ...cssVars,
           fontFamily:
