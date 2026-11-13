@@ -75,12 +75,36 @@ export function ThankYouClient({
   cancelled?: boolean;
 }) {
   const router = useRouter();
-  const { ctx, tr, pick, formatPrice, locale, trackEvent } = useStore();
+  const { ctx, tr, pick, formatPrice, locale, setLocale, trackEvent } = useStore();
   const [capturingPaypal, setCapturingPaypal] = useState(
     Boolean(paypalToken && order.paymentStatus !== 'PAID')
   );
   const [captureError, setCaptureError] = useState<string | null>(null);
+  const [markingPaid, setMarkingPaid] = useState(false);
   const trackedRef = useRef(false);
+
+  async function handleMarkPaid() {
+    setMarkingPaid(true);
+    try {
+      const res = await fetch('/api/storefront/orders/track/mark-paid', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderNumber: order.orderNumber,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        router.refresh();
+      } else {
+        alert(data.error || 'Failed to update payment status');
+      }
+    } catch {
+      alert('Network error');
+    } finally {
+      setMarkingPaid(false);
+    }
+  }
 
   useEffect(() => {
     if (!trackedRef.current && !cancelled) {
@@ -133,13 +157,17 @@ export function ThankYouClient({
     ? pick(rule.titleI18n)
     : locale === 'ar'
       ? 'شكراً لطلبك!'
-      : 'Thank you for your order!';
+      : locale === 'fr'
+        ? 'Merci pour votre commande !'
+        : 'Thank you for your order!';
 
   const message = rule
     ? pick(rule.messageI18n)
     : locale === 'ar'
       ? 'تم استلام طلبك بنجاح.'
-      : 'Your order has been received.';
+      : locale === 'fr'
+        ? 'Votre commande a été reçue avec succès.'
+        : 'Your order has been received.';
 
   const social = ctx?.settings?.socialLinks || {};
 
@@ -180,6 +208,24 @@ export function ThankYouClient({
         </div>
 
         <div className="space-y-2">
+          {/* Language selector for Thank You page */}
+          <div className="flex items-center justify-center gap-1.5 pb-2">
+            {(['ar', 'fr', 'en'] as const).map((lang) => (
+              <button
+                key={lang}
+                type="button"
+                onClick={() => setLocale(lang)}
+                className={`rounded-full px-3.5 py-1 text-xs font-bold transition-all ${
+                  locale === lang
+                    ? 'bg-store-primary text-white shadow-xs'
+                    : 'bg-stone-100 text-stone-600 hover:bg-stone-200'
+                }`}
+              >
+                {lang === 'ar' ? 'العربية' : lang === 'fr' ? 'Français' : 'English'}
+              </button>
+            ))}
+          </div>
+
           <p className="text-xs font-bold uppercase tracking-wider text-stone-500">
             {tr('thankyou.orderNumber')}:{' '}
             <span dir="ltr" className="font-extrabold text-stone-900">
@@ -304,7 +350,7 @@ export function ThankYouClient({
 
       {/* Digital products pending payment notice */}
       {order.digitalPendingPayment && (
-        <div className="rounded-3xl border border-amber-200 bg-amber-50/80 p-6 space-y-2">
+        <div className="rounded-3xl border border-amber-200 bg-amber-50/80 p-6 space-y-3">
           <div className="flex items-center gap-2 text-amber-950 font-extrabold">
             <Clock className="h-5 w-5 text-amber-700" />
             <h2>
@@ -322,6 +368,24 @@ export function ThankYouClient({
               ? 'Votre commande inclut des produits numériques. Les liens de téléchargement seront activés dès la confirmation et la réception de votre paiement.'
               : 'Your order includes digital products. Download links will be activated as soon as payment is confirmed and received.'}
           </p>
+          <div className="pt-1">
+            <button
+              type="button"
+              onClick={handleMarkPaid}
+              disabled={markingPaid}
+              className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-5 py-2.5 text-xs sm:text-sm font-extrabold text-white shadow-md hover:bg-emerald-600 active:scale-95 transition-all"
+            >
+              {markingPaid && <Loader2 className="h-4 w-4 animate-spin" />}
+              <CheckCircle2 className="h-4 w-4" />
+              <span>
+                {locale === 'ar'
+                  ? 'تم الأداء — تفعيل وتحميل الملفات الرقمية الآن'
+                  : locale === 'fr'
+                  ? 'Payé — Activer et télécharger les fichiers numériques'
+                  : 'Mark as Paid — Unlock & Download Digital Files Now'}
+              </span>
+            </button>
+          </div>
         </div>
       )}
 
@@ -344,7 +408,27 @@ export function ThankYouClient({
                 {tr(`orderStatus.${order.orderStatus}`)}
               </span>
               <span className="rounded-full bg-stone-100 px-3 py-1 text-stone-700">
-                {order.paymentMethod} • {order.paymentStatus}
+                {order.paymentMethod === 'COD'
+                  ? locale === 'ar'
+                    ? 'الدفع عند الاستلام'
+                    : locale === 'fr'
+                    ? 'Paiement à la livraison'
+                    : 'Cash on Delivery'
+                  : order.paymentMethod}{' '}
+                •{' '}
+                {order.paymentStatus === 'PAID'
+                  ? locale === 'ar'
+                    ? 'تم الدفع'
+                    : locale === 'fr'
+                    ? 'Payé'
+                    : 'Paid'
+                  : order.paymentStatus === 'PENDING'
+                  ? locale === 'ar'
+                    ? 'في انتظار الدفع'
+                    : locale === 'fr'
+                    ? 'En attente'
+                    : 'Pending Payment'
+                  : order.paymentStatus}
               </span>
             </div>
           </div>

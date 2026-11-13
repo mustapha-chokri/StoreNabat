@@ -199,6 +199,18 @@ export async function PATCH(
         if (!order) throw new Error('ORDER_NOT_FOUND');
 
         const nextWaStatus = body.whatsappConfirmationStatus || 'CONFIRMED_BY_CUSTOMER';
+
+        // Automatically advance order status to CONFIRMED if NEW or PENDING_WHATSAPP_CONFIRMATION
+        if (order.orderStatus === 'NEW' || order.orderStatus === 'PENDING_WHATSAPP_CONFIRMATION') {
+          await updateOrderStatus(db, {
+            storeId: tenant.id,
+            orderId: id,
+            newStatus: 'CONFIRMED',
+            note: 'Order confirmed with customer via WhatsApp',
+            actorEmail: admin.email,
+          });
+        }
+
         const [updated] = await db
           .update(orders)
           .set({
@@ -209,6 +221,16 @@ export async function PATCH(
           })
           .where(and(eq(orders.storeId, tenant.id), eq(orders.id, id)))
           .returning();
+
+        await db.insert(auditLogs).values({
+          storeId: tenant.id,
+          adminUserId: admin.id,
+          actorEmail: admin.email,
+          action: 'order.whatsapp_confirmed',
+          entityType: 'order',
+          entityId: id,
+          metadata: { whatsappConfirmationStatus: nextWaStatus },
+        });
 
         if (body.sendViaCloudApi) {
           const tplKey = body.templateKey || 'admin_order_confirmed';
@@ -239,15 +261,21 @@ export async function PATCH(
         return { order: updated };
       }
 
-      if (!body.orderStatus) {
-        throw new Error('orderStatus is required');
-      }
+      const [existingOrder] = await db
+        .select()
+        .from(orders)
+        .where(and(eq(orders.storeId, tenant.id), eq(orders.id, id)))
+        .limit(1);
+      if (!existingOrder) throw new Error('ORDER_NOT_FOUND');
+
+      const nextOrderStatus = body.orderStatus || existingOrder.orderStatus;
+      const nextPaymentStatus = body.paymentStatus || existingOrder.paymentStatus;
 
       const updated = await updateOrderStatus(db, {
         storeId: tenant.id,
         orderId: id,
-        newStatus: body.orderStatus,
-        paymentStatus: body.paymentStatus,
+        newStatus: nextOrderStatus,
+        paymentStatus: nextPaymentStatus,
         trackingNumber: body.trackingNumber,
         internalNotes: body.internalNotes,
         note: body.note,

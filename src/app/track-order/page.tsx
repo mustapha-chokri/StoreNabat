@@ -53,8 +53,39 @@ function TrackOrderInner() {
   const [orderNumber, setOrderNumber] = useState(sp.get('orderNumber') || '');
   const [phone, setPhone] = useState(sp.get('phone') || '');
   const [loading, setLoading] = useState(false);
+  const [markingPaid, setMarkingPaid] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [result, setResult] = useState<TrackedOrderResult | null>(null);
+
+  async function handleMarkPaid() {
+    if (!result) return;
+    setMarkingPaid(true);
+    try {
+      const res = await fetch('/api/storefront/orders/track/mark-paid', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          orderNumber: result.order.orderNumber,
+          phone: phone || undefined,
+        }),
+      });
+      const data = await res.json();
+      if (res.ok && data.success) {
+        setResult({
+          ...result,
+          order: { ...result.order, paymentStatus: 'PAID' },
+          downloads: data.downloads || [],
+          digitalPendingPayment: false,
+        });
+      } else {
+        alert(data.error || 'Failed to mark as paid');
+      }
+    } catch {
+      alert('Error updating payment status');
+    } finally {
+      setMarkingPaid(false);
+    }
+  }
 
   const performLookup = useCallback(async (num: string, tel: string) => {
     if (!num.trim()) return;
@@ -231,7 +262,7 @@ function TrackOrderInner() {
           )}
 
           {result.digitalPendingPayment && (
-            <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-4 space-y-1.5 border-t">
+            <div className="rounded-2xl border border-amber-200 bg-amber-50/80 p-4 space-y-2 border-t">
               <p className="text-xs font-bold text-amber-900">
                 {locale === 'ar'
                   ? 'الملفات الرقمية في انتظار تأكيد الدفع'
@@ -246,6 +277,24 @@ function TrackOrderInner() {
                   ? 'Cette commande contient des produits numériques. Les liens apparaîtront dès confirmation du paiement.'
                   : 'This order includes digital products. Download links will appear as soon as payment is confirmed.'}
               </p>
+              <div className="pt-1">
+                <button
+                  type="button"
+                  onClick={handleMarkPaid}
+                  disabled={markingPaid}
+                  className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-4 py-2 text-xs font-bold text-white shadow-sm hover:bg-emerald-600 active:scale-95 transition-all"
+                >
+                  {markingPaid && <Loader2 className="h-3.5 w-3.5 animate-spin" />}
+                  <CheckCircle2 className="h-4 w-4" />
+                  <span>
+                    {locale === 'ar'
+                      ? 'تم الأداء — تفعيل وتحميل الملفات الآن'
+                      : locale === 'fr'
+                      ? 'Payé — Activer et télécharger les fichiers'
+                      : 'Mark as Paid — Unlock & Download Files'}
+                  </span>
+                </button>
+              </div>
             </div>
           )}
 

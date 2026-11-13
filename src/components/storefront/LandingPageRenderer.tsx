@@ -100,6 +100,60 @@ export function LandingPageRenderer({
             );
           }
 
+          case 'IMAGE_BANNER': {
+            const rawImgs = Array.isArray(content.imageUrls)
+              ? (content.imageUrls as string[])
+              : content.imageUrl
+              ? [String(content.imageUrl)]
+              : [];
+            const stickyCta = Boolean(content.stickyCta ?? true);
+            const ctaText = pick(
+              content.ctaTextI18n as I18nMap,
+              locale === 'ar'
+                ? 'اضغط هنا للطلب الآن — الدفع عند الاستلام'
+                : locale === 'fr'
+                ? 'Commander maintenant — Paiement à la livraison'
+                : 'Order Now — Cash on Delivery'
+            );
+
+            return (
+              <section key={sec.id} className="mx-auto w-full max-w-5xl px-0 sm:px-4">
+                {rawImgs.length === 0 ? (
+                  <div className="flex min-h-[220px] items-center justify-center rounded-2xl border-2 border-dashed border-stone-300 bg-stone-50 p-6 text-center text-sm text-stone-500">
+                    {locale === 'ar'
+                      ? 'قم برفع صورة العرض أو بنر صفحة الهبوط في لوحة التحكم'
+                      : 'Upload landing page banner/infographic image in Admin'}
+                  </div>
+                ) : (
+                  <div className="space-y-0 overflow-hidden sm:rounded-3xl shadow-sm">
+                    {rawImgs.map((imgUrl, idx) => (
+                      <div key={idx} className="w-full">
+                        <img
+                          src={imgUrl}
+                          alt={title || `Banner ${idx + 1}`}
+                          className="h-auto w-full object-cover block"
+                          loading="lazy"
+                        />
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                {stickyCta && (
+                  <div className="sticky bottom-4 z-30 mx-auto mt-4 max-w-md px-4 text-center">
+                    <a
+                      href="#lp-quick-order"
+                      className="flex w-full items-center justify-center gap-2 rounded-2xl bg-gradient-to-r from-amber-500 to-amber-600 px-6 py-3.5 text-sm sm:text-base font-black text-stone-950 shadow-2xl transition-transform hover:scale-[1.02] active:scale-[0.98] border border-amber-300"
+                    >
+                      <Sparkles className="h-5 w-5 fill-stone-950" />
+                      <span>{ctaText}</span>
+                    </a>
+                  </div>
+                )}
+              </section>
+            );
+          }
+
           case 'PRODUCT_PRESENTATION':
           case 'PROMO_OFFER':
             return (

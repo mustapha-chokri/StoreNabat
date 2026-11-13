@@ -667,37 +667,114 @@ export default function AdminSettingsPage() {
                           {rule.name} ({rule.paymentMethodFilter} / {rule.orderStatusFilter})
                         </span>
                       </div>
-                      <input
-                        value={rule.titleI18n.ar || ''}
-                        onChange={(e) =>
-                          setData({
-                            ...data,
-                            thankYouRules: data.thankYouRules.map((r) =>
-                              r.id === rule.id
-                                ? { ...r, titleI18n: { ...r.titleI18n, ar: e.target.value } }
-                                : r
-                            ),
-                          })
-                        }
-                        placeholder="Title AR"
-                        className="w-full rounded-xl border border-stone-300 px-3 py-2"
-                      />
-                      <textarea
-                        rows={2}
-                        value={rule.messageI18n.ar || ''}
-                        onChange={(e) =>
-                          setData({
-                            ...data,
-                            thankYouRules: data.thankYouRules.map((r) =>
-                              r.id === rule.id
-                                ? { ...r, messageI18n: { ...r.messageI18n, ar: e.target.value } }
-                                : r
-                            ),
-                          })
-                        }
-                        placeholder="Message AR"
-                        className="w-full rounded-xl border border-stone-300 px-3 py-2"
-                      />
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-stone-700">
+                          {ar ? 'عنوان صفحة الشكر (3 لغات)' : 'Thank You Title (3 Languages)'}
+                        </label>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          <input
+                            value={rule.titleI18n.ar || ''}
+                            onChange={(e) =>
+                              setData({
+                                ...data,
+                                thankYouRules: data.thankYouRules.map((r) =>
+                                  r.id === rule.id
+                                    ? { ...r, titleI18n: { ...r.titleI18n, ar: e.target.value } }
+                                    : r
+                                ),
+                              })
+                            }
+                            placeholder="العنوان بالعربية"
+                            className="w-full rounded-xl border border-stone-300 px-3 py-2 text-xs"
+                          />
+                          <input
+                            value={rule.titleI18n.fr || ''}
+                            onChange={(e) =>
+                              setData({
+                                ...data,
+                                thankYouRules: data.thankYouRules.map((r) =>
+                                  r.id === rule.id
+                                    ? { ...r, titleI18n: { ...r.titleI18n, fr: e.target.value } }
+                                    : r
+                                ),
+                              })
+                            }
+                            placeholder="Titre en Français"
+                            className="w-full rounded-xl border border-stone-300 px-3 py-2 text-xs"
+                          />
+                          <input
+                            value={rule.titleI18n.en || ''}
+                            onChange={(e) =>
+                              setData({
+                                ...data,
+                                thankYouRules: data.thankYouRules.map((r) =>
+                                  r.id === rule.id
+                                    ? { ...r, titleI18n: { ...r.titleI18n, en: e.target.value } }
+                                    : r
+                                ),
+                              })
+                            }
+                            placeholder="Title in English"
+                            className="w-full rounded-xl border border-stone-300 px-3 py-2 text-xs"
+                          />
+                        </div>
+                      </div>
+
+                      <div className="space-y-1.5">
+                        <label className="text-xs font-bold text-stone-700">
+                          {ar ? 'رسالة الشكر والتأكيد (3 لغات)' : 'Thank You Message (3 Languages)'}
+                        </label>
+                        <div className="grid grid-cols-1 sm:grid-cols-3 gap-2">
+                          <textarea
+                            rows={2}
+                            value={rule.messageI18n.ar || ''}
+                            onChange={(e) =>
+                              setData({
+                                ...data,
+                                thankYouRules: data.thankYouRules.map((r) =>
+                                  r.id === rule.id
+                                    ? { ...r, messageI18n: { ...r.messageI18n, ar: e.target.value } }
+                                    : r
+                                ),
+                              })
+                            }
+                            placeholder="الرسالة بالعربية"
+                            className="w-full rounded-xl border border-stone-300 px-3 py-2 text-xs"
+                          />
+                          <textarea
+                            rows={2}
+                            value={rule.messageI18n.fr || ''}
+                            onChange={(e) =>
+                              setData({
+                                ...data,
+                                thankYouRules: data.thankYouRules.map((r) =>
+                                  r.id === rule.id
+                                    ? { ...r, messageI18n: { ...r.messageI18n, fr: e.target.value } }
+                                    : r
+                                ),
+                              })
+                            }
+                            placeholder="Message en Français"
+                            className="w-full rounded-xl border border-stone-300 px-3 py-2 text-xs"
+                          />
+                          <textarea
+                            rows={2}
+                            value={rule.messageI18n.en || ''}
+                            onChange={(e) =>
+                              setData({
+                                ...data,
+                                thankYouRules: data.thankYouRules.map((r) =>
+                                  r.id === rule.id
+                                    ? { ...r, messageI18n: { ...r.messageI18n, en: e.target.value } }
+                                    : r
+                                ),
+                              })
+                            }
+                            placeholder="Message in English"
+                            className="w-full rounded-xl border border-stone-300 px-3 py-2 text-xs"
+                          />
+                        </div>
+                      </div>
                       <button
                         type="button"
                         onClick={() => saveSection('THANK_YOU', rule as never)}

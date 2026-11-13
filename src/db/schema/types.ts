@@ -106,6 +106,7 @@ export interface MenuItemConfig {
 
 export type LandingSectionType =
   | 'HERO'
+  | 'IMAGE_BANNER'
   | 'PRODUCT_PRESENTATION'
   | 'BENEFITS'
   | 'GALLERY_VIDEO'

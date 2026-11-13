@@ -20,14 +20,21 @@ import {
 } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import {
+  Clock,
   Copy,
   ExternalLink,
   GripVertical,
+  HelpCircle,
+  Image as ImageIcon,
+  LayoutTemplate,
   Loader2,
   Monitor,
   Plus,
   Smartphone,
+  Sparkles,
   Trash2,
+  Upload,
+  Video,
   X,
 } from 'lucide-react';
 import { AdminShell } from '@/components/admin/AdminShell';
@@ -74,6 +81,7 @@ interface SimpleProduct {
 
 const SECTION_TYPES: LandingSectionType[] = [
   'HERO',
+  'IMAGE_BANNER',
   'PRODUCT_PRESENTATION',
   'BENEFITS',
   'GALLERY_VIDEO',
@@ -194,6 +202,288 @@ export default function AdminLandingPagesPage() {
     load();
   }, [load]);
 
+  const [uploadingSectionImage, setUploadingSectionImage] = useState(false);
+
+  async function handleSectionFileUpload(file: File, callback: (url: string) => void) {
+    setUploadingSectionImage(true);
+    try {
+      const fd = new FormData();
+      fd.append('file', file);
+      fd.append('folder', 'landing-pages');
+      const res = await fetch('/api/admin/upload', { method: 'POST', body: fd });
+      if (res.ok) {
+        const d = await res.json();
+        const url = d.url || d.publicUrl;
+        if (url) callback(url);
+      } else {
+        alert('Failed to upload image');
+      }
+    } catch {
+      alert('Network error while uploading image');
+    } finally {
+      setUploadingSectionImage(false);
+    }
+  }
+
+  function applyPresetTemplate(
+    template: 'IMAGE_CANVA' | 'FLASH_SALE' | 'BOTANICAL_LUXURY' | 'MINIMAL_DIRECT'
+  ) {
+    const firstProd = products[0];
+    const firstProdId = firstProd?.id || null;
+    const now = Date.now();
+
+    if (template === 'IMAGE_CANVA') {
+      setEditing({
+        id: '',
+        productId: firstProdId,
+        slug: `banner-offer-${now.toString().slice(-4)}`,
+        titleI18n: {
+          ar: 'صفحة هبوط كصورة (كانفا / فوتوشوب)',
+          fr: 'Landing Page Image / Canva',
+          en: 'Full Image / Canva Landing Page',
+        },
+        isPublished: true,
+        showHeader: false,
+        showFooter: true,
+        sections: [
+          {
+            id: `sec-img-${now}`,
+            type: 'IMAGE_BANNER',
+            enabled: true,
+            sortOrder: 0,
+            titleI18n: { ar: 'بنر العرض الترويجي', fr: 'Bannière de l’offre', en: 'Promotional Banner' },
+            content: {
+              imageUrl: firstProd?.media?.[0]?.url || '',
+              stickyCta: true,
+              ctaTextI18n: {
+                ar: 'اضغط هنا للطلب الآن — الدفع عند الاستلام',
+                fr: 'Commander maintenant — Paiement à la livraison',
+                en: 'Order Now — Cash on Delivery',
+              },
+            },
+          },
+          {
+            id: `sec-order-${now + 1}`,
+            type: 'QUICK_ORDER_FORM',
+            enabled: true,
+            sortOrder: 1,
+            titleI18n: {
+              ar: 'املأ الاستمارة لإتمام طلبك',
+              fr: 'Complétez votre commande',
+              en: 'Fill in your details to order',
+            },
+            content: {},
+          },
+        ],
+        seoI18n: {},
+        customPixels: {},
+        viewsCount: 0,
+        ordersCount: 0,
+      });
+      setSelectedSecId(`sec-img-${now}`);
+      return;
+    }
+
+    if (template === 'FLASH_SALE') {
+      setEditing({
+        id: '',
+        productId: firstProdId,
+        slug: `flash-sale-${now.toString().slice(-4)}`,
+        titleI18n: {
+          ar: 'عرض ترويجي حارق — خصم حصري',
+          fr: 'Vente Flash — Offre Limitée',
+          en: 'Flash Sale — Limited Time Offer',
+        },
+        isPublished: true,
+        showHeader: false,
+        showFooter: true,
+        sections: [
+          {
+            id: `sec-hero-${now}`,
+            type: 'HERO',
+            enabled: true,
+            sortOrder: 0,
+            titleI18n: {
+              ar: 'عرض استثنائي ومحدود — استفد من التخفيض الآن',
+              fr: 'Offre exclusive — Profitez de la réduction',
+              en: 'Exclusive Offer — Claim Your Discount Now',
+            },
+            subtitleI18n: {
+              ar: 'توصيل سريع مجاني لكافة المدن المغربية مع ضمان الجودة 100%',
+              fr: 'Livraison gratuite partout au Maroc avec garantie 100%',
+              en: 'Free fast delivery across Morocco with 100% guarantee',
+            },
+            content: {
+              imageUrl: firstProd?.media?.[0]?.url || '',
+              badgeI18n: { ar: '🔥 تخفيض حصري 40%', fr: '🔥 Réduction 40%', en: '🔥 40% Off' },
+            },
+          },
+          {
+            id: `sec-count-${now + 1}`,
+            type: 'COUNTDOWN',
+            enabled: true,
+            sortOrder: 1,
+            titleI18n: { ar: 'ينتهي هذا العرض الترويجي قريباً:', fr: 'Cette offre se termine dans :', en: 'This offer ends in:' },
+            content: { endsAt: new Date(Date.now() + 86400000 * 2).toISOString() },
+          },
+          {
+            id: `sec-ben-${now + 2}`,
+            type: 'BENEFITS',
+            enabled: true,
+            sortOrder: 2,
+            titleI18n: { ar: 'لماذا يختارنا أكثر من 10,000 زبون؟', fr: 'Pourquoi nous choisir ?', en: 'Why Choose Us?' },
+            content: {
+              items: [
+                {
+                  titleI18n: { ar: 'توصيل مجاني وسريع', fr: 'Livraison gratuite', en: 'Fast Free Delivery' },
+                  descI18n: { ar: 'توصيل إلى باب منزلك في 24 إلى 48 ساعة لكافة المدن.', fr: 'À votre porte en 24-48h.', en: 'To your doorstep in 24-48 hours.' },
+                },
+                {
+                  titleI18n: { ar: 'الدفع عند الاستلام', fr: 'Paiement à la livraison', en: 'Cash on Delivery' },
+                  descI18n: { ar: 'لا تدفع أي درهم حتى تستلم طلبك وتتفحصه بنفسك.', fr: 'Payez uniquement à réception.', en: 'Pay only upon receipt and inspection.' },
+                },
+                {
+                  titleI18n: { ar: 'ضمان الاسترجاع والرضا', fr: 'Garantie satisfaction', en: 'Satisfaction Guaranteed' },
+                  descI18n: { ar: 'ضمان استبدال أو استرجاع في حال وجود أي عيب.', fr: 'Échange ou remboursement garanti.', en: 'Hassle-free replacement guarantee.' },
+                },
+              ],
+            },
+          },
+          {
+            id: `sec-bundles-${now + 3}`,
+            type: 'PRICING_BUNDLES',
+            enabled: true,
+            sortOrder: 3,
+            titleI18n: { ar: 'اختر باقتك المفضلة واستفد من الخصم', fr: 'Choisissez votre pack', en: 'Choose Your Bundle' },
+            content: {
+              tiers: [
+                { qty: 1, labelI18n: { ar: 'علبة واحدة', fr: '1 Pièce', en: '1 Piece' } },
+                { qty: 2, labelI18n: { ar: 'علبتين (خصم 20%) الأكثر طلباً ⭐', fr: '2 Pièces (-20%) Populaire', en: '2 Pieces (-20%) Most Popular' } },
+                { qty: 3, labelI18n: { ar: '3 علب (توصيل مجاني + هدية)', fr: '3 Pièces (Gratuit + Cadeau)', en: '3 Pieces (Free + Gift)' } },
+              ],
+            },
+          },
+          {
+            id: `sec-order-${now + 4}`,
+            type: 'QUICK_ORDER_FORM',
+            enabled: true,
+            sortOrder: 4,
+            titleI18n: { ar: 'أدخل معلوماتك وسنتصل بك فوراً للتأكيد', fr: 'Commander maintenant', en: 'Quick Order' },
+            content: {},
+          },
+          {
+            id: `sec-reviews-${now + 5}`,
+            type: 'TESTIMONIALS',
+            enabled: true,
+            sortOrder: 5,
+            titleI18n: { ar: 'آراء وتقييمات زبنائنا الكرام', fr: 'Avis de nos clients', en: 'Customer Reviews' },
+            content: {
+              items: [
+                { name: 'فاطمة الزهراء — الدار البيضاء', rating: 5, text: 'جودة ممتازة والتوصيل كان سريع جداً في 24 ساعة، شكراً لكم!' },
+                { name: 'يوسف — الرباط', rating: 5, text: 'المنتج أصلي ومطابق للوصف تماماً والمعاملة في الواتساب احترافية.' },
+                { name: 'سناء — مراكش', rating: 5, text: 'التغليف أنيق والمنتج فاق توقعاتي، سأطلب منكم مرة أخرى إن شاء الله.' },
+              ],
+            },
+          },
+        ],
+        seoI18n: {},
+        customPixels: {},
+        viewsCount: 0,
+        ordersCount: 0,
+      });
+      setSelectedSecId(`sec-hero-${now}`);
+      return;
+    }
+
+    if (template === 'BOTANICAL_LUXURY') {
+      setEditing({
+        id: '',
+        productId: firstProdId,
+        slug: `luxury-${now.toString().slice(-4)}`,
+        titleI18n: {
+          ar: 'سرد القصة والفخامة المغربية الطبيعية',
+          fr: 'Luxe Botanique & Histoire',
+          en: 'Botanical Luxury Storytelling',
+        },
+        isPublished: true,
+        showHeader: true,
+        showFooter: true,
+        sections: [
+          {
+            id: `sec-hero-${now}`,
+            type: 'HERO',
+            enabled: true,
+            sortOrder: 0,
+            titleI18n: { ar: 'أسرار الطبيعة المغربية الأصيلة', fr: 'Secrets de la nature marocaine', en: 'Authentic Moroccan Nature Secrets' },
+            subtitleI18n: { ar: 'مستحضرات طبيعية نقية 100% مستوحاة من جبال الأطلس الشامخة', fr: '100% naturel pur issu de l’Atlas', en: '100% pure natural heritage from the Atlas mountains' },
+            content: {
+              imageUrl: firstProd?.media?.[0]?.url || '',
+              badgeI18n: { ar: '🌿 منتج عضوي فاخر', fr: '🌿 Bio de luxe', en: '🌿 Pure Organic' },
+            },
+          },
+          {
+            id: `sec-prod-${now + 1}`,
+            type: 'PRODUCT_PRESENTATION',
+            enabled: true,
+            sortOrder: 1,
+            titleI18n: { ar: 'قصة هذا المنتج الفريد', fr: 'L’histoire du produit', en: 'The Product Story' },
+            content: {
+              bodyI18n: {
+                ar: 'تم قطف واختيار كل عنصر بعناية فائقة من تعاونيات مغربية أصيلة لضمان أعلى مستويات الفعالية والنقاء دون أي إضافات كيميائية.',
+                fr: 'Sélection rigoureuse d’ingrédients purs issus de coopératives marocaines authentiques.',
+                en: 'Carefully hand-harvested ingredients from Moroccan cooperatives for purity and efficacy.',
+              },
+            },
+          },
+          {
+            id: `sec-ben-${now + 2}`,
+            type: 'BENEFITS',
+            enabled: true,
+            sortOrder: 2,
+            titleI18n: { ar: 'المميزات والفوائد الأساسية', fr: 'Bienfaits essentiels', en: 'Key Benefits' },
+            content: {
+              items: [
+                { titleI18n: { ar: 'نتائج ملحوظة من أول أسبوع', fr: 'Résultats visibles dès 7 jours' }, descI18n: { ar: 'تركيبة مركزة تمنحك النتائج المنشودة بسرعة وأمان.' } },
+                { titleI18n: { ar: 'معتمد ومختبر مخبرياً', fr: 'Testé en laboratoire' }, descI18n: { ar: 'خاضع لاختبارات الجودة والسلامة الصحية.' } },
+                { titleI18n: { ar: 'خالٍ من المواد الحافظة', fr: 'Sans conservateurs' }, descI18n: { ar: 'نقي 100% بدون أي مواد كيميائية ضارة.' } },
+              ],
+            },
+          },
+          {
+            id: `sec-faq-${now + 3}`,
+            type: 'FAQ',
+            enabled: true,
+            sortOrder: 3,
+            titleI18n: { ar: 'الأسئلة الشائعة والأجوبة', fr: 'Foire Aux Questions', en: 'Frequently Asked Questions' },
+            content: {
+              items: [
+                { qI18n: { ar: 'كيف يتم استخدام المنتج؟' }, aI18n: { ar: 'يوضع يومياً بانتظام وفق التعليمات المرفقة مع العلبة.' } },
+                { qI18n: { ar: 'كم يستغرق التوصيل؟' }, aI18n: { ar: 'يصلكم الطلب خلال 24-48 ساعة والدفع يكون عند الاستلام.' } },
+              ],
+            },
+          },
+          {
+            id: `sec-order-${now + 4}`,
+            type: 'QUICK_ORDER_FORM',
+            enabled: true,
+            sortOrder: 4,
+            titleI18n: { ar: 'احصل على باقتك الآن واستفد من العرض', fr: 'Commandez votre pack', en: 'Order Now' },
+            content: {},
+          },
+        ],
+        seoI18n: {},
+        customPixels: {},
+        viewsCount: 0,
+        ordersCount: 0,
+      });
+      setSelectedSecId(`sec-hero-${now}`);
+      return;
+    }
+
+    // MINIMAL_DIRECT
+    startNew();
+  }
+
   function startNew() {
     const firstProdId = products[0]?.id || null;
     setEditing({
@@ -245,6 +535,18 @@ export default function AdminLandingPagesPage() {
     setEditing({ ...editing, sections: reordered });
   }
 
+  function updateActiveSectionContent(partial: Record<string, unknown>) {
+    if (!editing || !selectedSecId) return;
+    setEditing({
+      ...editing,
+      sections: editing.sections.map((s) =>
+        s.id === selectedSecId
+          ? { ...s, content: { ...((s.content as Record<string, unknown>) || {}), ...partial } }
+          : s
+      ),
+    });
+  }
+
   function addSection(type: LandingSectionType) {
     if (!editing) return;
     const id = `sec-${type.toLowerCase()}-${Date.now()}`;
@@ -256,13 +558,23 @@ export default function AdminLandingPagesPage() {
       titleI18n: { ar: type, fr: type, en: type },
       subtitleI18n: { ar: '', fr: '', en: '' },
       content:
-        type === 'FAQ'
-          ? { items: [{ qI18n: { ar: 'سؤال؟' }, aI18n: { ar: 'جواب' } }] }
-          : type === 'BENEFITS'
-            ? { items: [{ titleI18n: { ar: 'ميزة 1' }, descI18n: { ar: 'وصف' } }] }
-            : type === 'COUNTDOWN'
-              ? { endsAt: new Date(Date.now() + 86400000 * 3).toISOString() }
-              : {},
+        type === 'IMAGE_BANNER'
+          ? {
+              imageUrl: '',
+              stickyCta: true,
+              ctaTextI18n: {
+                ar: 'اضغط هنا للطلب الآن — الدفع عند الاستلام',
+                fr: 'Commander maintenant — Paiement à la livraison',
+                en: 'Order Now — Cash on Delivery',
+              },
+            }
+          : type === 'FAQ'
+            ? { items: [{ qI18n: { ar: 'سؤال؟' }, aI18n: { ar: 'جواب' } }] }
+            : type === 'BENEFITS'
+              ? { items: [{ titleI18n: { ar: 'ميزة 1' }, descI18n: { ar: 'وصف' } }] }
+              : type === 'COUNTDOWN'
+                ? { endsAt: new Date(Date.now() + 86400000 * 3).toISOString() }
+                : {},
     };
     setEditing({ ...editing, sections: [...editing.sections, newSec] });
     setSelectedSecId(id);
@@ -318,22 +630,618 @@ export default function AdminLandingPagesPage() {
   const activeSection = editing?.sections.find((s) => s.id === selectedSecId) || null;
   const linkedProduct = products.find((p) => p.id === editing?.productId) || null;
 
+  function renderActiveSectionContent() {
+    if (!activeSection) return null;
+    const content = (activeSection.content || {}) as Record<string, unknown>;
+
+    switch (activeSection.type) {
+      case 'IMAGE_BANNER': {
+        const imgUrl = String(content.imageUrl || '');
+        const stickyCta = Boolean(content.stickyCta ?? true);
+        const ctaText = (content.ctaTextI18n as I18nMap) || {};
+
+        return (
+          <div className="space-y-3 rounded-xl border border-amber-200 bg-amber-50/50 p-3">
+            <div className="flex items-center justify-between">
+              <span className="font-extrabold text-amber-950 flex items-center gap-1.5 text-xs">
+                <ImageIcon className="h-4 w-4 text-amber-700" />
+                {ar ? 'صورة البنر (Canva / فوتوشوب)' : 'Banner Image (Canva / PS)'}
+              </span>
+            </div>
+
+            {/* Upload Button */}
+            <div>
+              <label className="flex w-full cursor-pointer items-center justify-center gap-2 rounded-xl border border-dashed border-amber-400 bg-white p-3 text-xs font-bold text-amber-950 hover:bg-amber-50 transition-colors">
+                <Upload className="h-4 w-4 text-amber-600" />
+                <span>
+                  {uploadingSectionImage
+                    ? ar ? 'جار رفع الصورة...' : 'Uploading...'
+                    : ar ? 'رفع صورة البنر من جهازك' : 'Upload Banner Image'}
+                </span>
+                <input
+                  type="file"
+                  accept="image/*"
+                  disabled={uploadingSectionImage}
+                  className="hidden"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    if (f) {
+                      handleSectionFileUpload(f, (url) => {
+                        updateActiveSectionContent({ imageUrl: url });
+                      });
+                    }
+                  }}
+                />
+              </label>
+            </div>
+
+            {/* Direct Image URL */}
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold text-stone-600">
+                {ar ? 'أو أدخل رابط الصورة المباشر:' : 'Or enter direct image URL:'}
+              </label>
+              <input
+                dir="ltr"
+                value={imgUrl}
+                onChange={(e) => updateActiveSectionContent({ imageUrl: e.target.value })}
+                placeholder="https://... /uploads/..."
+                className="w-full rounded-xl border border-stone-300 bg-white px-3 py-1.5 text-xs text-start"
+              />
+            </div>
+
+            {/* Preview */}
+            {imgUrl && (
+              <div className="relative overflow-hidden rounded-xl border border-stone-200">
+                <img
+                  src={imgUrl}
+                  alt="Banner preview"
+                  className="max-h-48 w-full object-contain bg-stone-100"
+                />
+                <button
+                  type="button"
+                  onClick={() => updateActiveSectionContent({ imageUrl: '' })}
+                  className="absolute top-2 right-2 rounded-lg bg-red-600 p-1 text-white shadow hover:bg-red-700"
+                >
+                  <Trash2 className="h-3 w-3" />
+                </button>
+              </div>
+            )}
+
+            {/* Sticky CTA option */}
+            <div className="pt-2 border-t border-amber-200/70 space-y-2">
+              <label className="flex items-center gap-2 text-xs font-bold text-stone-800 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={stickyCta}
+                  onChange={(e) => updateActiveSectionContent({ stickyCta: e.target.checked })}
+                  className="rounded border-amber-400 text-amber-600"
+                />
+                <span>
+                  {ar
+                    ? 'إظهار زر طلب عائم أسفل الشاشة (Sticky Mobile CTA)'
+                    : 'Show floating sticky CTA button on mobile'}
+                </span>
+              </label>
+
+              {stickyCta && (
+                <div className="space-y-1.5">
+                  <label className="text-[11px] font-bold text-stone-600">
+                    {ar ? 'نص زر الطلب العائم:' : 'Sticky CTA Button Text:'}
+                  </label>
+                  <input
+                    value={ctaText.ar || ''}
+                    onChange={(e) =>
+                      updateActiveSectionContent({
+                        ctaTextI18n: { ...ctaText, ar: e.target.value },
+                      })
+                    }
+                    placeholder="نص الزر بالعربية (مثال: اضغط هنا للطلب الآن — الدفع عند الاستلام)"
+                    className="w-full rounded-xl border border-stone-300 bg-white px-3 py-1.5 text-xs"
+                  />
+                  <input
+                    value={ctaText.fr || ''}
+                    onChange={(e) =>
+                      updateActiveSectionContent({
+                        ctaTextI18n: { ...ctaText, fr: e.target.value },
+                      })
+                    }
+                    placeholder="Texte du bouton (FR)"
+                    className="w-full rounded-xl border border-stone-300 bg-white px-3 py-1.5 text-xs"
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+        );
+      }
+
+      case 'HERO': {
+        const imgUrl = String(content.imageUrl || '');
+        const badge = (content.badgeI18n as I18nMap) || {};
+
+        return (
+          <div className="space-y-3 rounded-xl border border-stone-200 bg-stone-50/60 p-3">
+            <span className="font-extrabold text-stone-800 flex items-center gap-1.5 text-xs">
+              <Sparkles className="h-4 w-4 text-amber-500" />
+              {ar ? 'محتوى البانر الرئيسي (Hero)' : 'Hero Banner Details'}
+            </span>
+
+            {/* Hero Image upload */}
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold text-stone-600">
+                {ar ? 'صورة المنتج في الهيرو:' : 'Hero Product Image:'}
+              </label>
+              <div className="flex gap-2">
+                <input
+                  dir="ltr"
+                  value={imgUrl}
+                  onChange={(e) => updateActiveSectionContent({ imageUrl: e.target.value })}
+                  placeholder="https://..."
+                  className="flex-1 rounded-xl border border-stone-300 bg-white px-3 py-1.5 text-xs text-start"
+                />
+                <label className="cursor-pointer rounded-xl border border-stone-300 bg-white px-3 py-1.5 text-xs font-bold text-stone-700 hover:bg-stone-50">
+                  <Upload className="h-3.5 w-3.5" />
+                  <input
+                    type="file"
+                    accept="image/*"
+                    disabled={uploadingSectionImage}
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) {
+                        handleSectionFileUpload(f, (url) => {
+                          updateActiveSectionContent({ imageUrl: url });
+                        });
+                      }
+                    }}
+                  />
+                </label>
+              </div>
+            </div>
+
+            {/* Badge */}
+            <div className="space-y-1">
+              <label className="text-[11px] font-bold text-stone-600">
+                {ar ? 'شارة أعلى العنوان (Badge):' : 'Top Badge:'}
+              </label>
+              <input
+                value={badge.ar || ''}
+                onChange={(e) =>
+                  updateActiveSectionContent({
+                    badgeI18n: { ...badge, ar: e.target.value },
+                  })
+                }
+                placeholder="مثال: 🔥 تخفيض حصري 40%"
+                className="w-full rounded-xl border border-stone-300 bg-white px-3 py-1.5 text-xs"
+              />
+            </div>
+          </div>
+        );
+      }
+
+      case 'COUNTDOWN': {
+        const endsAt = content.endsAt ? String(content.endsAt) : '';
+        const dtVal = endsAt ? new Date(endsAt).toISOString().slice(0, 16) : '';
+
+        return (
+          <div className="space-y-2 rounded-xl border border-stone-200 bg-stone-50/60 p-3">
+            <span className="font-extrabold text-stone-800 flex items-center gap-1.5 text-xs">
+              <Clock className="h-4 w-4 text-red-500" />
+              {ar ? 'العداد التنازلي' : 'Countdown Timer'}
+            </span>
+            <label className="text-[11px] font-bold text-stone-600">
+              {ar ? 'تاريخ ووقت انتهاء العرض:' : 'Offer Ends At:'}
+            </label>
+            <input
+              type="datetime-local"
+              value={dtVal}
+              onChange={(e) => {
+                if (e.target.value) {
+                  updateActiveSectionContent({ endsAt: new Date(e.target.value).toISOString() });
+                }
+              }}
+              className="w-full rounded-xl border border-stone-300 bg-white px-3 py-1.5 text-xs"
+            />
+          </div>
+        );
+      }
+
+      case 'BENEFITS': {
+        const rawItems = Array.isArray(content.items) ? (content.items as Array<{ titleI18n?: I18nMap; descI18n?: I18nMap }>) : [];
+
+        return (
+          <div className="space-y-3 rounded-xl border border-stone-200 bg-stone-50/60 p-3">
+            <div className="flex items-center justify-between">
+              <span className="font-extrabold text-stone-800 text-xs">
+                {ar ? 'عناصر المميزات والفوائد' : 'Benefits List'}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  const newItems = [
+                    ...rawItems,
+                    {
+                      titleI18n: { ar: 'ميزة جديدة', fr: 'Nouvel avantage', en: 'New Benefit' },
+                      descI18n: { ar: 'وصف مختصر للميزة', fr: 'Description', en: 'Description' },
+                    },
+                  ];
+                  updateActiveSectionContent({ items: newItems });
+                }}
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:underline"
+              >
+                <Plus className="h-3 w-3" />
+                {ar ? 'إضافة ميزة' : 'Add Item'}
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              {rawItems.map((item, idx) => (
+                <div key={idx} className="rounded-lg border border-stone-200 bg-white p-2 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-stone-400">#{idx + 1}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newItems = rawItems.filter((_, i) => i !== idx);
+                        updateActiveSectionContent({ items: newItems });
+                      }}
+                      className="text-stone-400 hover:text-red-600"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
+                  <input
+                    value={item.titleI18n?.ar || ''}
+                    onChange={(e) => {
+                      const newItems = [...rawItems];
+                      newItems[idx] = {
+                        ...newItems[idx],
+                        titleI18n: { ...(newItems[idx].titleI18n || {}), ar: e.target.value },
+                      };
+                      updateActiveSectionContent({ items: newItems });
+                    }}
+                    placeholder="عنوان الميزة (عربي)"
+                    className="w-full rounded border border-stone-200 px-2 py-1 text-xs"
+                  />
+                  <input
+                    value={item.descI18n?.ar || ''}
+                    onChange={(e) => {
+                      const newItems = [...rawItems];
+                      newItems[idx] = {
+                        ...newItems[idx],
+                        descI18n: { ...(newItems[idx].descI18n || {}), ar: e.target.value },
+                      };
+                      updateActiveSectionContent({ items: newItems });
+                    }}
+                    placeholder="وصف الميزة (عربي)"
+                    className="w-full rounded border border-stone-200 px-2 py-1 text-xs"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      }
+
+      case 'FAQ': {
+        const rawItems = Array.isArray(content.items) ? (content.items as Array<{ qI18n?: I18nMap; aI18n?: I18nMap }>) : [];
+
+        return (
+          <div className="space-y-3 rounded-xl border border-stone-200 bg-stone-50/60 p-3">
+            <div className="flex items-center justify-between">
+              <span className="font-extrabold text-stone-800 flex items-center gap-1.5 text-xs">
+                <HelpCircle className="h-4 w-4 text-blue-500" />
+                {ar ? 'الأسئلة الشائعة والأجوبة' : 'FAQ Items'}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  const newItems = [
+                    ...rawItems,
+                    {
+                      qI18n: { ar: 'سؤال جديد؟', fr: 'Nouvelle question ?' },
+                      aI18n: { ar: 'جواب السؤال هنا.', fr: 'Réponse ici.' },
+                    },
+                  ];
+                  updateActiveSectionContent({ items: newItems });
+                }}
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:underline"
+              >
+                <Plus className="h-3 w-3" />
+                {ar ? 'إضافة سؤال' : 'Add FAQ'}
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              {rawItems.map((item, idx) => (
+                <div key={idx} className="rounded-lg border border-stone-200 bg-white p-2 space-y-1.5">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] font-bold text-stone-400">#{idx + 1}</span>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        const newItems = rawItems.filter((_, i) => i !== idx);
+                        updateActiveSectionContent({ items: newItems });
+                      }}
+                      className="text-stone-400 hover:text-red-600"
+                    >
+                      <Trash2 className="h-3 w-3" />
+                    </button>
+                  </div>
+                  <input
+                    value={item.qI18n?.ar || ''}
+                    onChange={(e) => {
+                      const newItems = [...rawItems];
+                      newItems[idx] = {
+                        ...newItems[idx],
+                        qI18n: { ...(newItems[idx].qI18n || {}), ar: e.target.value },
+                      };
+                      updateActiveSectionContent({ items: newItems });
+                    }}
+                    placeholder="السؤال (عربي)"
+                    className="w-full rounded border border-stone-200 px-2 py-1 text-xs font-bold"
+                  />
+                  <textarea
+                    rows={2}
+                    value={item.aI18n?.ar || ''}
+                    onChange={(e) => {
+                      const newItems = [...rawItems];
+                      newItems[idx] = {
+                        ...newItems[idx],
+                        aI18n: { ...(newItems[idx].aI18n || {}), ar: e.target.value },
+                      };
+                      updateActiveSectionContent({ items: newItems });
+                    }}
+                    placeholder="الجواب (عربي)"
+                    className="w-full rounded border border-stone-200 px-2 py-1 text-xs"
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      }
+
+      case 'PRICING_BUNDLES': {
+        const rawTiers = Array.isArray(content.tiers) ? (content.tiers as Array<{ qty?: number; labelI18n?: I18nMap }>) : [];
+
+        return (
+          <div className="space-y-3 rounded-xl border border-stone-200 bg-stone-50/60 p-3">
+            <div className="flex items-center justify-between">
+              <span className="font-extrabold text-stone-800 text-xs">
+                {ar ? 'باقات العروض (Bundles)' : 'Bundle Pricing Tiers'}
+              </span>
+              <button
+                type="button"
+                onClick={() => {
+                  const newTiers = [
+                    ...rawTiers,
+                    {
+                      qty: (rawTiers.length || 0) + 1,
+                      labelI18n: { ar: 'باقة جديدة', fr: 'Nouveau pack' },
+                    },
+                  ];
+                  updateActiveSectionContent({ tiers: newTiers });
+                }}
+                className="inline-flex items-center gap-1 text-[11px] font-bold text-emerald-700 hover:underline"
+              >
+                <Plus className="h-3 w-3" />
+                {ar ? 'إضافة باقة' : 'Add Tier'}
+              </button>
+            </div>
+
+            <div className="space-y-2">
+              {rawTiers.map((tier, idx) => (
+                <div key={idx} className="flex items-center gap-2 rounded-lg border border-stone-200 bg-white p-2">
+                  <div className="w-16">
+                    <span className="text-[10px] text-stone-400 block">{ar ? 'الكمية' : 'Qty'}</span>
+                    <input
+                      type="number"
+                      min={1}
+                      value={tier.qty || 1}
+                      onChange={(e) => {
+                        const newTiers = [...rawTiers];
+                        newTiers[idx] = { ...newTiers[idx], qty: Number(e.target.value) || 1 };
+                        updateActiveSectionContent({ tiers: newTiers });
+                      }}
+                      className="w-full rounded border border-stone-200 px-1.5 py-1 text-xs text-center"
+                    />
+                  </div>
+                  <div className="flex-1">
+                    <span className="text-[10px] text-stone-400 block">{ar ? 'العنوان' : 'Label'}</span>
+                    <input
+                      value={tier.labelI18n?.ar || ''}
+                      onChange={(e) => {
+                        const newTiers = [...rawTiers];
+                        newTiers[idx] = {
+                          ...newTiers[idx],
+                          labelI18n: { ...(newTiers[idx].labelI18n || {}), ar: e.target.value },
+                        };
+                        updateActiveSectionContent({ tiers: newTiers });
+                      }}
+                      placeholder="مثال: علبتين (خصم 20%)"
+                      className="w-full rounded border border-stone-200 px-2 py-1 text-xs"
+                    />
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const newTiers = rawTiers.filter((_, i) => i !== idx);
+                      updateActiveSectionContent({ tiers: newTiers });
+                    }}
+                    className="p-1 text-stone-400 hover:text-red-600 self-end"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+              ))}
+            </div>
+          </div>
+        );
+      }
+
+      case 'PRODUCT_PRESENTATION': {
+        const body = (content.bodyI18n as I18nMap) || {};
+
+        return (
+          <div className="space-y-2 rounded-xl border border-stone-200 bg-stone-50/60 p-3">
+            <span className="font-extrabold text-stone-800 text-xs">
+              {ar ? 'نص قصة المنتج / الشرح المفصل' : 'Product Story / Presentation'}
+            </span>
+            <textarea
+              rows={4}
+              value={body.ar || ''}
+              onChange={(e) =>
+                updateActiveSectionContent({
+                  bodyI18n: { ...body, ar: e.target.value },
+                })
+              }
+              placeholder="اكتب قصة المنتج أو تفاصيل المكونات الطبيعية هنا..."
+              className="w-full rounded-xl border border-stone-300 bg-white px-3 py-1.5 text-xs"
+            />
+          </div>
+        );
+      }
+
+      case 'GALLERY_VIDEO': {
+        const videoUrl = String(content.videoUrl || '');
+
+        return (
+          <div className="space-y-2 rounded-xl border border-stone-200 bg-stone-50/60 p-3">
+            <span className="font-extrabold text-stone-800 flex items-center gap-1.5 text-xs">
+              <Video className="h-4 w-4 text-emerald-600" />
+              {ar ? 'رابط الفيديو (YouTube / MP4)' : 'Video URL'}
+            </span>
+            <input
+              dir="ltr"
+              value={videoUrl}
+              onChange={(e) => updateActiveSectionContent({ videoUrl: e.target.value })}
+              placeholder="https://www.youtube.com/watch?v=..."
+              className="w-full rounded-xl border border-stone-300 bg-white px-3 py-1.5 text-xs text-start"
+            />
+          </div>
+        );
+      }
+
+      default:
+        return null;
+    }
+  }
+
   return (
     <AdminShell>
       {!editing ? (
-        <div className="space-y-4">
-          <div className="flex items-center justify-between rounded-2xl border border-stone-200 bg-white p-4">
-            <h1 className="text-base font-extrabold">
-              {ar ? 'منشئ صفحات الهبوط (Landing Pages)' : 'Landing Page Builder'}
-            </h1>
-            <button
-              type="button"
-              onClick={startNew}
-              className="btn-store-primary inline-flex items-center gap-2 px-4 py-2 text-xs font-extrabold"
-            >
-              <Plus className="h-4 w-4" />
-              <span>{ar ? 'صفحة هبوط جديدة' : 'New Landing Page'}</span>
-            </button>
+        <div className="space-y-5">
+          <div className="rounded-2xl border border-stone-200 bg-white p-5 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h1 className="text-lg font-black text-stone-900">
+                  {ar ? 'منشئ صفحات الهبوط (Landing Pages)' : 'Landing Page Builder'}
+                </h1>
+                <p className="text-xs text-stone-500">
+                  {ar
+                    ? 'اختر قالباً جاهزاً بضغطة واحدة، أو ابنِ صفحتك المخصصة خطوة بخطوة'
+                    : 'Choose a ready preset template or build your custom landing page'}
+                </p>
+              </div>
+              <button
+                type="button"
+                onClick={startNew}
+                className="btn-store-primary inline-flex items-center gap-2 px-4 py-2 text-xs font-extrabold"
+              >
+                <Plus className="h-4 w-4" />
+                <span>{ar ? 'صفحة فارغة' : 'Blank Page'}</span>
+              </button>
+            </div>
+
+            {/* Quick Template Presets */}
+            <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4 pt-2 border-t border-stone-100">
+              <button
+                type="button"
+                onClick={() => applyPresetTemplate('IMAGE_CANVA')}
+                className="group flex flex-col items-start gap-1.5 rounded-2xl border border-amber-200 bg-amber-50/50 p-4 text-start transition-all hover:border-amber-400 hover:bg-amber-50 hover:shadow-sm"
+              >
+                <div className="flex w-full items-center justify-between">
+                  <span className="rounded-lg bg-amber-100 p-2 text-amber-800">
+                    <ImageIcon className="h-4 w-4" />
+                  </span>
+                  <span className="text-[10px] font-black uppercase text-amber-800 bg-amber-200/60 px-2 py-0.5 rounded-full">
+                    {ar ? 'الأكثر طلباً' : 'Popular'}
+                  </span>
+                </div>
+                <div className="font-extrabold text-stone-900 text-xs">
+                  {ar ? '🖼️ صفحة كصورة (Canva / بنر)' : '🖼️ Full Image / Canva'}
+                </div>
+                <p className="text-[11px] text-stone-600 line-clamp-2">
+                  {ar
+                    ? 'صمم صفحتك في كانفا أو فوتوشوب وارفعها مباشرة كصورة طويلة مع زر طلب عائم.'
+                    : 'Upload tall Canva/Photoshop infographics with sticky floating COD button.'}
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => applyPresetTemplate('FLASH_SALE')}
+                className="group flex flex-col items-start gap-1.5 rounded-2xl border border-red-200 bg-red-50/50 p-4 text-start transition-all hover:border-red-400 hover:bg-red-50 hover:shadow-sm"
+              >
+                <div className="flex w-full items-center justify-between">
+                  <span className="rounded-lg bg-red-100 p-2 text-red-800">
+                    <Sparkles className="h-4 w-4" />
+                  </span>
+                  <span className="text-[10px] font-black uppercase text-red-800 bg-red-200/60 px-2 py-0.5 rounded-full">
+                    {ar ? 'تحويل عالٍ' : 'High Conv'}
+                  </span>
+                </div>
+                <div className="font-extrabold text-stone-900 text-xs">
+                  {ar ? '🔥 عرض ترويجي (Flash Sale)' : '🔥 Flash Sale Urgency'}
+                </div>
+                <p className="text-[11px] text-stone-600 line-clamp-2">
+                  {ar
+                    ? 'عداد تنازلي للخصم، باقات أسعار متعددة (Bundles)، وآراء وتقييمات زبناء حقيقية.'
+                    : 'Countdown timer, bundle pricing discounts, and customer testimonials.'}
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => applyPresetTemplate('BOTANICAL_LUXURY')}
+                className="group flex flex-col items-start gap-1.5 rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4 text-start transition-all hover:border-emerald-400 hover:bg-emerald-50 hover:shadow-sm"
+              >
+                <div className="flex w-full items-center justify-between">
+                  <span className="rounded-lg bg-emerald-100 p-2 text-emerald-800">
+                    <LayoutTemplate className="h-4 w-4" />
+                  </span>
+                </div>
+                <div className="font-extrabold text-stone-900 text-xs">
+                  {ar ? '🌿 فخامة وسرد قصة (Storytelling)' : '🌿 Botanical Luxury'}
+                </div>
+                <p className="text-[11px] text-stone-600 line-clamp-2">
+                  {ar
+                    ? 'هوية بصرية فاخرة، قصة المنتج الأصيل، بطاقات الفوائد والأسئلة الشائعة.'
+                    : 'Modern luxury aesthetic, authentic product story, benefits and FAQ.'}
+                </p>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => applyPresetTemplate('MINIMAL_DIRECT')}
+                className="group flex flex-col items-start gap-1.5 rounded-2xl border border-stone-200 bg-stone-50 p-4 text-start transition-all hover:border-stone-400 hover:bg-white hover:shadow-sm"
+              >
+                <div className="flex w-full items-center justify-between">
+                  <span className="rounded-lg bg-stone-200 p-2 text-stone-800">
+                    <Plus className="h-4 w-4" />
+                  </span>
+                </div>
+                <div className="font-extrabold text-stone-900 text-xs">
+                  {ar ? '⚡ مباشر وسريع (Minimal Direct)' : '⚡ Minimal Direct Form'}
+                </div>
+                <p className="text-[11px] text-stone-600 line-clamp-2">
+                  {ar
+                    ? 'عنوان رئيسي مع استمارة طلب فوري بدون تشتيت، مثالية للإعلانات المركزة.'
+                    : 'Hero headline with instant order form without distraction.'}
+                </p>
+              </button>
+            </div>
           </div>
 
           {loading ? (
@@ -458,6 +1366,37 @@ export default function AdminLandingPagesPage() {
                 />
                 {ar ? 'منشورة' : 'Published'}
               </label>
+
+              {/* Template selector in builder header */}
+              <select
+                onChange={(e) => {
+                  if (e.target.value) {
+                    if (
+                      confirm(
+                        ar
+                          ? 'هل أنت متأكد من تطبيق هذا القالب؟ سيتم استبدال أقسام الصفحة الحالية.'
+                          : 'Are you sure? This will replace current sections with the template.'
+                      )
+                    ) {
+                      applyPresetTemplate(
+                        e.target.value as
+                          | 'IMAGE_CANVA'
+                          | 'FLASH_SALE'
+                          | 'BOTANICAL_LUXURY'
+                          | 'MINIMAL_DIRECT'
+                      );
+                    }
+                  }
+                }}
+                value=""
+                className="rounded-xl border border-amber-300 bg-amber-50 px-2.5 py-1.5 text-xs font-bold text-amber-900 cursor-pointer hover:bg-amber-100"
+              >
+                <option value="">{ar ? '⚡ تطبيق قالب جاهز...' : '⚡ Apply Preset Template...'}</option>
+                <option value="IMAGE_CANVA">{ar ? '🖼️ صفحة كصورة (Canva / بنر)' : '🖼️ Full Image / Canva'}</option>
+                <option value="FLASH_SALE">{ar ? '🔥 عرض ترويجي (Flash Sale)' : '🔥 Flash Sale Urgency'}</option>
+                <option value="BOTANICAL_LUXURY">{ar ? '🌿 فخامة وسرد قصة (Luxury)' : '🌿 Botanical Luxury'}</option>
+                <option value="MINIMAL_DIRECT">{ar ? '⚡ مباشر وسريع (Minimal)' : '⚡ Minimal Direct'}</option>
+              </select>
             </div>
 
             <div className="flex items-center gap-2">
@@ -606,6 +1545,8 @@ export default function AdminLandingPagesPage() {
                     placeholder="Subtitle AR"
                     className="w-full rounded-xl border border-stone-300 px-3 py-1.5"
                   />
+                  {/* Dynamic Section Content Editor */}
+                  {renderActiveSectionContent()}
                 </div>
               )}
 

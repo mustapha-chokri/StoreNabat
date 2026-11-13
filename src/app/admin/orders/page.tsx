@@ -2,6 +2,7 @@
 
 import React, { useCallback, useEffect, useState } from 'react';
 import {
+  CheckCircle2,
   CheckSquare,
   Download,
   Edit3,
@@ -112,6 +113,7 @@ export default function AdminOrdersPage() {
 
   // Editable detail states
   const [nextStatus, setNextStatus] = useState<OrderStatus>('NEW');
+  const [nextPaymentStatus, setNextPaymentStatus] = useState<string>('PENDING');
   const [trackingNumber, setTrackingNumber] = useState('');
   const [internalNotes, setInternalNotes] = useState('');
   const [editMode, setEditMode] = useState(false);
@@ -153,6 +155,7 @@ export default function AdminOrdersPage() {
         const d = (await res.json()) as OrderDetailResponse;
         setDetail(d);
         setNextStatus(d.order.orderStatus);
+        setNextPaymentStatus(d.order.paymentStatus);
         setTrackingNumber(d.order.trackingNumber || '');
         setInternalNotes(d.order.internalNotes || '');
         setEditName(d.order.customerName);
@@ -193,6 +196,7 @@ export default function AdminOrdersPage() {
         body: JSON.stringify({
           action: 'UPDATE_STATUS',
           orderStatus: nextStatus,
+          paymentStatus: nextPaymentStatus,
           trackingNumber,
           internalNotes,
         }),
@@ -200,6 +204,35 @@ export default function AdminOrdersPage() {
       if (res.ok) {
         await openOrderDetail(detail.order.id);
         await loadOrders();
+      } else {
+        const d = await res.json().catch(() => ({}));
+        alert(d.error || 'Failed to update order status');
+      }
+    } finally {
+      setSavingDetail(false);
+    }
+  }
+
+  async function handleQuickMarkPaid() {
+    if (!detail) return;
+    setSavingDetail(true);
+    try {
+      const res = await fetch(`/api/admin/orders/${detail.order.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          action: 'UPDATE_STATUS',
+          orderStatus: nextStatus,
+          paymentStatus: 'PAID',
+          note: 'Marked as paid by admin (digital downloads unlocked)',
+        }),
+      });
+      if (res.ok) {
+        await openOrderDetail(detail.order.id);
+        await loadOrders();
+      } else {
+        const d = await res.json().catch(() => ({}));
+        alert(d.error || 'Failed to mark as paid');
       }
     } finally {
       setSavingDetail(false);
@@ -238,7 +271,7 @@ export default function AdminOrdersPage() {
     if (!detail) return;
     setSavingDetail(true);
     try {
-      await fetch(`/api/admin/orders/${detail.order.id}`, {
+      const res = await fetch(`/api/admin/orders/${detail.order.id}`, {
         method: 'PATCH',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -247,8 +280,15 @@ export default function AdminOrdersPage() {
           sendViaCloudApi,
         }),
       });
-      await openOrderDetail(detail.order.id);
-      await loadOrders();
+      if (res.ok) {
+        await openOrderDetail(detail.order.id);
+        await loadOrders();
+      } else {
+        const d = await res.json().catch(() => ({}));
+        alert(d.error || 'Failed to update WhatsApp confirmation');
+      }
+    } catch {
+      alert('Network error while updating WhatsApp confirmation');
     } finally {
       setSavingDetail(false);
     }
@@ -529,9 +569,21 @@ export default function AdminOrdersPage() {
                       </td>
                       <td className="p-3">
                         <p className="font-bold text-stone-900">{ord.customerName}</p>
-                        <p dir="ltr" className="text-xs text-stone-500">
-                          {ord.phone}
-                        </p>
+                        <div className="flex items-center gap-1.5 pt-0.5">
+                          <span dir="ltr" className="text-xs text-stone-500">
+                            {ord.phone}
+                          </span>
+                          {ord.whatsappConfirmationStatus === 'CONFIRMED_BY_CUSTOMER' ? (
+                            <span className="inline-flex items-center gap-0.5 rounded-full bg-emerald-100 px-1.5 py-0.5 text-[10px] font-extrabold text-emerald-800">
+                              <CheckCircle2 className="h-3 w-3 text-emerald-600" />
+                              WA ✓
+                            </span>
+                          ) : (
+                            <span className="rounded-full bg-stone-100 px-1.5 py-0.5 text-[10px] text-stone-400">
+                              WA?
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="p-3 text-stone-700">{ord.cityName}</td>
                       <td className="p-3">
@@ -716,31 +768,53 @@ export default function AdminOrdersPage() {
                     <div className="rounded-2xl border border-emerald-200 bg-emerald-50/50 p-4 space-y-3">
                       <div className="flex items-center justify-between">
                         <span className="text-xs font-extrabold text-emerald-950">
-                          WhatsApp ({detail.order.whatsappConfirmationStatus})
+                          {ar ? 'تأكيد الطلب عبر واتساب' : 'WhatsApp Order Confirmation'}
                         </span>
+                        {detail.order.whatsappConfirmationStatus === 'CONFIRMED_BY_CUSTOMER' ? (
+                          <span className="inline-flex items-center gap-1 rounded-full bg-emerald-200 px-2.5 py-0.5 text-xs font-black text-emerald-900">
+                            <CheckCircle2 className="h-3.5 w-3.5 text-emerald-700" />
+                            {ar ? 'مؤكد من الزبون' : 'Confirmed'}
+                          </span>
+                        ) : (
+                          <span className="rounded-full bg-amber-100 px-2.5 py-0.5 text-xs font-bold text-amber-900">
+                            {ar ? 'بانتظار التأكيد' : 'Pending Confirmation'}
+                          </span>
+                        )}
                       </div>
                       <div className="flex flex-wrap gap-2">
                         <a
                           href={detail.whatsappQuickUrl}
                           target="_blank"
                           rel="noreferrer"
-                          className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-emerald-500"
+                          className="inline-flex items-center gap-1.5 rounded-xl bg-emerald-600 px-3.5 py-2 text-xs font-bold text-white hover:bg-emerald-500 shadow-xs"
                         >
                           <MessageCircle className="h-4 w-4" />
                           {ar ? 'مراسلة عبر واتساب' : 'Open WhatsApp Chat'}
                         </a>
                         <button
                           type="button"
+                          disabled={savingDetail}
                           onClick={() => handleWhatsAppCloudAction(false)}
-                          className="rounded-xl border border-emerald-700 bg-white px-3.5 py-2 text-xs font-bold text-emerald-900"
+                          className={`rounded-xl px-3.5 py-2 text-xs font-bold transition-all shadow-xs ${
+                            detail.order.whatsappConfirmationStatus === 'CONFIRMED_BY_CUSTOMER'
+                              ? 'border border-emerald-300 bg-emerald-100 text-emerald-900'
+                              : 'bg-emerald-800 text-white hover:bg-emerald-700'
+                          }`}
                         >
-                          {ar ? 'تعيين كمؤكد واتساب' : 'Mark WA Confirmed'}
+                          {detail.order.whatsappConfirmationStatus === 'CONFIRMED_BY_CUSTOMER'
+                            ? ar
+                              ? '✓ تم التأكيد بنجاح'
+                              : '✓ Confirmed'
+                            : ar
+                            ? 'تعيين كمؤكد واتساب'
+                            : 'Mark WA Confirmed'}
                         </button>
                         {detail.whatsappCloudEnabled && (
                           <button
                             type="button"
+                            disabled={savingDetail}
                             onClick={() => handleWhatsAppCloudAction(true)}
-                            className="inline-flex items-center gap-1 rounded-xl bg-stone-900 px-3.5 py-2 text-xs font-bold text-white"
+                            className="inline-flex items-center gap-1 rounded-xl bg-stone-900 px-3.5 py-2 text-xs font-bold text-white shadow-xs hover:bg-stone-800"
                           >
                             <Send className="h-3.5 w-3.5" />
                             Cloud API
@@ -756,17 +830,51 @@ export default function AdminOrdersPage() {
                       <h3 className="text-xs font-extrabold uppercase text-stone-500">
                         {ar ? 'تحديث الحالة والتتبع' : 'Status & Tracking'}
                       </h3>
-                      <select
-                        value={nextStatus}
-                        onChange={(e) => setNextStatus(e.target.value as OrderStatus)}
-                        className="w-full rounded-xl border border-stone-300 px-3 py-2 text-xs font-bold"
-                      >
-                        {ALL_ORDER_STATUSES.map((s) => (
-                          <option key={s} value={s}>
-                            {tr(`orderStatus.${s}`)}
-                          </option>
-                        ))}
-                      </select>
+                      <div>
+                        <label className="mb-1 block text-[11px] font-bold text-stone-600">
+                          {ar ? 'حالة الطلب:' : 'Order Status:'}
+                        </label>
+                        <select
+                          value={nextStatus}
+                          onChange={(e) => setNextStatus(e.target.value as OrderStatus)}
+                          className="w-full rounded-xl border border-stone-300 px-3 py-2 text-xs font-bold"
+                        >
+                          {ALL_ORDER_STATUSES.map((s) => (
+                            <option key={s} value={s}>
+                              {tr(`orderStatus.${s}`)}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="mb-1 block text-[11px] font-bold text-stone-600">
+                          {ar ? 'حالة الدفع والأداء:' : 'Payment Status:'}
+                        </label>
+                        <select
+                          value={nextPaymentStatus}
+                          onChange={(e) => setNextPaymentStatus(e.target.value)}
+                          className="w-full rounded-xl border border-stone-300 px-3 py-2 text-xs font-bold"
+                        >
+                          <option value="PENDING">{ar ? 'في انتظار الدفع (PENDING)' : 'Pending'}</option>
+                          <option value="PAID">{ar ? 'تم الأداء (PAID) — تفعيل التحميل الرقمي' : 'Paid'}</option>
+                          <option value="FAILED">{ar ? 'فشل الدفع (FAILED)' : 'Failed'}</option>
+                          <option value="REFUNDED">{ar ? 'مسترجع (REFUNDED)' : 'Refunded'}</option>
+                        </select>
+                      </div>
+
+                      {detail.order.paymentStatus !== 'PAID' && (
+                        <button
+                          type="button"
+                          disabled={savingDetail}
+                          onClick={handleQuickMarkPaid}
+                          className="flex w-full items-center justify-center gap-1.5 rounded-xl bg-emerald-700 py-2.5 text-xs font-black text-white shadow-sm hover:bg-emerald-600 active:scale-95 transition-all"
+                        >
+                          <CheckCircle2 className="h-4 w-4" />
+                          <span>{ar ? 'تعيين كـ: تم الأداء (تفعيل التحميل الرقمي)' : 'Mark as Paid (Unlock Downloads)'}</span>
+                        </button>
+                      )}
+
                       <input
                         type="text"
                         dir="ltr"
@@ -788,7 +896,7 @@ export default function AdminOrdersPage() {
                         onClick={handleUpdateOrderStatus}
                         className="btn-store-primary w-full py-2.5 text-xs font-extrabold"
                       >
-                        {ar ? 'حفظ الحالة' : 'Save Status'}
+                        {ar ? 'حفظ التغييرات' : 'Save Changes'}
                       </button>
 
                       {detail.order.paymentStatus === 'PAID' &&
