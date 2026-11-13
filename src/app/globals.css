@@ -1,0 +1,60 @@
+@import "tailwindcss";
+
+:root {
+  --store-primary: #14532D;
+  --store-secondary: #D97706;
+  --store-bg: #FAF9F6;
+  --store-surface: #FFFFFF;
+  --store-text: #1C1917;
+  --store-radius: 0.75rem;
+}
+
+body {
+  background-color: var(--store-bg);
+  color: var(--store-text);
+  font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+}
+
+.btn-store-primary {
+  background-color: var(--store-primary);
+  color: #ffffff;
+  border-radius: var(--store-radius);
+  transition: filter 150ms ease, transform 120ms ease;
+}
+
+.btn-store-primary:hover {
+  filter: brightness(1.08);
+}
+
+.btn-store-primary:active {
+  transform: scale(0.99);
+}
+
+.btn-store-accent {
+  background-color: var(--store-secondary);
+  color: #ffffff;
+  border-radius: var(--store-radius);
+}
+
+.text-store-primary {
+  color: var(--store-primary);
+}
+
+.bg-store-primary {
+  background-color: var(--store-primary);
+}
+
+.border-store-primary {
+  border-color: var(--store-primary);
+}
+
+@media print {
+  .no-print {
+    display: none !important;
+  }
+  body {
+    background: #ffffff !important;
+    color: #000000 !important;
+  }
+}
+
