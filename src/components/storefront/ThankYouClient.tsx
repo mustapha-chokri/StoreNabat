@@ -80,31 +80,7 @@ export function ThankYouClient({
     Boolean(paypalToken && order.paymentStatus !== 'PAID')
   );
   const [captureError, setCaptureError] = useState<string | null>(null);
-  const [markingPaid, setMarkingPaid] = useState(false);
   const trackedRef = useRef(false);
-
-  async function handleMarkPaid() {
-    setMarkingPaid(true);
-    try {
-      const res = await fetch('/api/storefront/orders/track/mark-paid', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          orderNumber: order.orderNumber,
-        }),
-      });
-      const data = await res.json();
-      if (res.ok && data.success) {
-        router.refresh();
-      } else {
-        alert(data.error || 'Failed to update payment status');
-      }
-    } catch {
-      alert('Network error');
-    } finally {
-      setMarkingPaid(false);
-    }
-  }
 
   useEffect(() => {
     if (!trackedRef.current && !cancelled) {
@@ -368,24 +344,6 @@ export function ThankYouClient({
               ? 'Votre commande inclut des produits numériques. Les liens de téléchargement seront activés dès la confirmation et la réception de votre paiement.'
               : 'Your order includes digital products. Download links will be activated as soon as payment is confirmed and received.'}
           </p>
-          <div className="pt-1">
-            <button
-              type="button"
-              onClick={handleMarkPaid}
-              disabled={markingPaid}
-              className="inline-flex items-center gap-2 rounded-xl bg-emerald-700 px-5 py-2.5 text-xs sm:text-sm font-extrabold text-white shadow-md hover:bg-emerald-600 active:scale-95 transition-all"
-            >
-              {markingPaid && <Loader2 className="h-4 w-4 animate-spin" />}
-              <CheckCircle2 className="h-4 w-4" />
-              <span>
-                {locale === 'ar'
-                  ? 'تم الأداء — تفعيل وتحميل الملفات الرقمية الآن'
-                  : locale === 'fr'
-                  ? 'Payé — Activer et télécharger les fichiers numériques'
-                  : 'Mark as Paid — Unlock & Download Digital Files Now'}
-              </span>
-            </button>
-          </div>
         </div>
       )}
 
