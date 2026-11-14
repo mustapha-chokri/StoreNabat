@@ -195,8 +195,8 @@ function TrackOrderInner() {
                 {locale === 'ar'
                   ? 'تم تأكيد الأداء بنجاح! ملفاتك الرقمية جاهزة ومتاحة للتحميل الفوري:'
                   : locale === 'fr'
-                  ? 'Paiement confirmé avec succès ! Vos fichiers numériques sont prêts au téléchargement :'
-                  : 'Payment confirmed! Your digital files are ready for immediate download:'}
+                    ? 'Paiement confirmé avec succès ! Vos fichiers numériques sont prêts au téléchargement :'
+                    : 'Payment confirmed! Your digital files are ready for immediate download:'}
               </p>
               <div className="space-y-2 pt-1">
                 {result.downloads.map((d) => (
@@ -231,16 +231,16 @@ function TrackOrderInner() {
                   {locale === 'ar'
                     ? 'الملفات الرقمية في انتظار تأكيد استلام الدفع'
                     : locale === 'fr'
-                    ? 'Fichiers numériques en attente de confirmation du paiement'
-                    : 'Digital files pending payment verification'}
+                      ? 'Fichiers numériques en attente de confirmation du paiement'
+                      : 'Digital files pending payment verification'}
                 </p>
               </div>
               <p className="text-xs text-amber-800 leading-relaxed">
                 {locale === 'ar'
                   ? 'يتضمن هذا الطلب منتجات رقمية. سيتم تفعيل روابط التحميل وإظهارها هنا تلقائياً فور تأكيد إدارة المتجر أو بوابة الدفع استلام المبلغ.'
                   : locale === 'fr'
-                  ? 'Cette commande contient des produits numériques. Les liens de téléchargement seront activés dès confirmation de la réception du paiement par notre équipe.'
-                  : 'This order includes digital products. Download links will appear here automatically once payment receipt is verified by our team.'}
+                    ? 'Cette commande contient des produits numériques. Les liens de téléchargement seront activés dès confirmation de la réception du paiement par notre équipe.'
+                    : 'This order includes digital products. Download links will appear here automatically once payment receipt is verified by our team.'}
               </p>
             </div>
           )}
